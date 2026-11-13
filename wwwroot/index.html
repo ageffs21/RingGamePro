@@ -1,0 +1,2890 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0b1116" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Ring Game Tracker" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>Ring Game Tracker — Offline Billiards Scorekeeper</title>
+  <link rel="icon" type="image/png" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="manifest" href="manifest.json" />
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      border-width: 0;
+      border-style: solid;
+      border-color: #263646;
+    }
+
+
+    :root {
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-sans);
+      background-color: #0b1116;
+      color: #f1f5f9;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-font-smoothing: antialiased;
+    }
+
+
+    button, input, select, textarea {
+      font-family: inherit;
+      color: inherit;
+    }
+
+
+    button {
+      cursor: pointer;
+      background: transparent;
+    }
+
+
+    button:disabled {
+      cursor: not-allowed;
+    }
+
+
+    /* Core Layout & Utility Classes (100% Self-Contained, Zero CDN) */
+    .hidden { display: none !important; }
+    .block { display: block; }
+    .inline-block { display: inline-block; }
+    .inline-flex { display: inline-flex; }
+    .flex { display: flex; }
+    .grid { display: grid; }
+    .flex-col { flex-direction: column; }
+    .flex-wrap { flex-wrap: wrap; }
+    .flex-1 { flex: 1 1 0%; }
+    .shrink-0 { flex-shrink: 0; }
+    .items-start { align-items: flex-start; }
+    .items-center { align-items: center; }
+    .justify-center { justify-content: center; }
+    .justify-between { justify-content: space-between; }
+    .justify-end { justify-content: flex-end; }
+    .min-h-screen { min-height: 100vh; }
+    .min-w-0 { min-width: 0; }
+    .w-full { width: 100%; }
+    .w-2 { width: 0.5rem; }
+    .h-2 { height: 0.5rem; }
+    .w-3\.5 { width: 0.875rem; }
+    .h-3\.5 { height: 0.875rem; }
+    .w-4 { width: 1rem; }
+    .h-4 { height: 1rem; }
+    .w-5 { width: 1.25rem; }
+    .h-5 { height: 1.25rem; }
+    .w-6 { width: 1.5rem; }
+    .h-6 { height: 1.5rem; }
+    .w-7 { width: 1.75rem; }
+    .h-7 { height: 1.75rem; }
+    .w-8 { width: 2rem; }
+    .h-8 { height: 2rem; }
+    .w-9 { width: 2.25rem; }
+    .h-9 { height: 2.25rem; }
+    .w-10 { width: 2.5rem; }
+    .h-10 { height: 2.5rem; }
+    .w-12 { width: 3rem; }
+    .h-12 { height: 3rem; }
+    .w-24 { width: 6rem; }
+    .w-28 { width: 7rem; }
+    .max-w-md { max-width: 28rem; }
+    .max-w-lg { max-width: 32rem; }
+    .max-w-3xl { max-width: 48rem; }
+    .max-w-4xl { max-width: 56rem; }
+    .max-w-5xl { max-width: 64rem; }
+    .max-h-\[60vh\] { max-height: 60vh; }
+    .max-h-\[90vh\] { max-height: 90vh; }
+
+
+    .mx-auto { margin-left: auto; margin-right: auto; }
+    .mx-1 { margin-left: 0.25rem; margin-right: 0.25rem; }
+    .mx-1\.5 { margin-left: 0.375rem; margin-right: 0.375rem; }
+    .mx-2 { margin-left: 0.5rem; margin-right: 0.5rem; }
+    .my-4 { margin-top: 1rem; margin-bottom: 1rem; }
+    .mt-0\.5 { margin-top: 0.125rem; }
+    .mt-1 { margin-top: 0.25rem; }
+    .mt-1\.5 { margin-top: 0.375rem; }
+    .mt-2 { margin-top: 0.5rem; }
+    .mt-2\.5 { margin-top: 0.625rem; }
+    .mt-4 { margin-top: 1rem; }
+    .mt-5 { margin-top: 1.25rem; }
+    .mt-6 { margin-top: 1.5rem; }
+    .mb-1 { margin-bottom: 0.25rem; }
+    .mb-1\.5 { margin-bottom: 0.375rem; }
+    .mb-2 { margin-bottom: 0.5rem; }
+    .mb-3 { margin-bottom: 0.75rem; }
+    .mb-3\.5 { margin-bottom: 0.875rem; }
+    .mb-4 { margin-bottom: 1rem; }
+    .mb-5 { margin-bottom: 1.25rem; }
+    .ml-auto { margin-left: auto; }
+
+
+    .p-1 { padding: 0.25rem; }
+    .p-2 { padding: 0.5rem; }
+    .p-2\.5 { padding: 0.625rem; }
+    .p-3 { padding: 0.75rem; }
+    .p-3\.5 { padding: 0.875rem; }
+    .p-4 { padding: 1rem; }
+    .p-5 { padding: 1.25rem; }
+    .p-6 { padding: 1.5rem; }
+    .p-8 { padding: 2rem; }
+    .px-1 { padding-left: 0.25rem; padding-right: 0.25rem; }
+    .px-1\.5 { padding-left: 0.375rem; padding-right: 0.375rem; }
+    .px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
+    .px-2\.5 { padding-left: 0.625rem; padding-right: 0.625rem; }
+    .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+    .px-3\.5 { padding-left: 0.875rem; padding-right: 0.875rem; }
+    .px-4 { padding-left: 1rem; padding-right: 1rem; }
+    .px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+    .py-0\.5 { padding-top: 0.125rem; padding-bottom: 0.125rem; }
+    .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+    .py-1\.5 { padding-top: 0.375rem; padding-bottom: 0.375rem; }
+    .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+    .py-2\.5 { padding-top: 0.625rem; padding-bottom: 0.625rem; }
+    .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+    .py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+    .py-5 { padding-top: 1.25rem; padding-bottom: 1.25rem; }
+    .pt-1 { padding-top: 0.25rem; }
+    .pt-2 { padding-top: 0.5rem; }
+    .pt-3 { padding-top: 0.75rem; }
+    .pt-4 { padding-top: 1rem; }
+    .pb-3 { padding-bottom: 0.75rem; }
+    .pb-4 { padding-bottom: 1rem; }
+    .pb-24 { padding-bottom: 6rem; }
+    .pl-2 { padding-left: 0.5rem; }
+    .pl-3 { padding-left: 0.75rem; }
+    .pl-7 { padding-left: 1.75rem; }
+    .pr-1 { padding-right: 0.25rem; }
+    .pr-2\.5 { padding-right: 0.625rem; }
+    .pr-3 { padding-right: 0.75rem; }
+
+
+    .gap-1 { gap: 0.25rem; }
+    .gap-1\.5 { gap: 0.375rem; }
+    .gap-2 { gap: 0.5rem; }
+    .gap-2\.5 { gap: 0.625rem; }
+    .gap-3 { gap: 0.75rem; }
+    .gap-3\.5 { gap: 0.875rem; }
+    .gap-4 { gap: 1rem; }
+    .gap-5 { gap: 1.25rem; }
+
+
+    .space-y-1\.5 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.375rem; }
+    .space-y-2 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.5rem; }
+    .space-y-2\.5 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.625rem; }
+    .space-y-3 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.75rem; }
+    .space-y-4 > :not([hidden]) ~ :not([hidden]) { margin-top: 1rem; }
+    .space-y-5 > :not([hidden]) ~ :not([hidden]) { margin-top: 1.25rem; }
+    .space-y-6 > :not([hidden]) ~ :not([hidden]) { margin-top: 1.5rem; }
+
+
+    .divide-y > :not([hidden]) ~ :not([hidden]) { border-top-width: 1px; }
+    .divide-slatefelt-800 > :not([hidden]) ~ :not([hidden]) { border-color: #1a2632; }
+
+
+    .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+    .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .col-span-2 { grid-column: span 2 / span 2; }
+
+
+    .sticky { position: sticky; }
+    .fixed { position: fixed; }
+    .relative { position: relative; }
+    .absolute { position: absolute; }
+    .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+    .top-0 { top: 0; }
+    .top-1\/2 { top: 50%; }
+    .bottom-4 { bottom: 1rem; }
+    .left-3 { left: 0.75rem; }
+    .left-1\/2 { left: 50%; }
+    .-translate-x-1\/2 { transform: translateX(-50%); }
+    .-translate-y-1\/2 { transform: translateY(-50%); }
+    .translate-y-2 { transform: translateY(0.5rem); }
+
+
+    .z-30 { z-index: 30; }
+    .z-40 { z-index: 40; }
+    .z-50 { z-index: 50; }
+
+
+    .overflow-hidden { overflow: hidden; }
+    .overflow-x-auto { overflow-x: auto; }
+    .overflow-y-auto { overflow-y: auto; }
+    .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .whitespace-nowrap { white-space: nowrap; }
+    .select-none { user-select: none; }
+    .pointer-events-none { pointer-events: none; }
+    .cursor-pointer { cursor: pointer; }
+    .cursor-grab { cursor: grab; }
+
+
+    .rounded-lg { border-radius: 0.5rem; }
+    .rounded-xl { border-radius: 0.75rem; }
+    .rounded-2xl { border-radius: 1rem; }
+    .rounded-full { border-radius: 9999px; }
+
+
+    .border { border-width: 1px; }
+    .border-2 { border-width: 2px; }
+    .border-t { border-top-width: 1px; }
+    .border-b { border-bottom-width: 1px; }
+
+
+    .border-slatefelt-600 { border-color: #364b60; }
+    .border-slatefelt-700 { border-color: #263646; }
+    .border-slatefelt-700\/50 { border-color: rgba(38, 54, 70, 0.5); }
+    .border-slatefelt-700\/60 { border-color: rgba(38, 54, 70, 0.6); }
+    .border-slatefelt-700\/70 { border-color: rgba(38, 54, 70, 0.7); }
+    .border-slatefelt-700\/80 { border-color: rgba(38, 54, 70, 0.8); }
+    .border-slatefelt-800 { border-color: #1a2632; }
+    .border-emerald-500 { border-color: #10b981; }
+    .border-emerald-500\/30 { border-color: rgba(16, 185, 129, 0.3); }
+    .border-emerald-500\/35 { border-color: rgba(16, 185, 129, 0.35); }
+    .border-emerald-500\/40 { border-color: rgba(16, 185, 129, 0.4); }
+    .border-emerald-500\/60 { border-color: rgba(16, 185, 129, 0.6); }
+    .border-emerald-500\/70 { border-color: rgba(16, 185, 129, 0.7); }
+    .border-blue-500\/30 { border-color: rgba(59, 130, 246, 0.3); }
+    .border-blue-500\/40 { border-color: rgba(59, 130, 246, 0.4); }
+    .border-amber-500\/30 { border-color: rgba(245, 158, 11, 0.3); }
+    .border-amber-500\/40 { border-color: rgba(245, 158, 11, 0.4); }
+    .border-amber-500\/60 { border-color: rgba(245, 158, 11, 0.6); }
+    .border-rose-500\/60 { border-color: rgba(244, 63, 94, 0.6); }
+
+
+    .bg-slatefelt-950 { background-color: #090d11; }
+    .bg-slatefelt-950\/60 { background-color: rgba(9, 13, 17, 0.6); }
+    .bg-slatefelt-950\/80 { background-color: rgba(9, 13, 17, 0.8); }
+    .bg-slatefelt-900 { background-color: #0f161d; }
+    .bg-slatefelt-900\/95 { background-color: rgba(15, 22, 29, 0.95); }
+    .bg-slatefelt-850 { background-color: #141e27; }
+    .bg-slatefelt-850\/50 { background-color: rgba(20, 30, 39, 0.5); }
+    .bg-slatefelt-850\/70 { background-color: rgba(20, 30, 39, 0.7); }
+    .bg-slatefelt-850\/80 { background-color: rgba(20, 30, 39, 0.8); }
+    .bg-slatefelt-800 { background-color: #1a2632; }
+    .bg-slatefelt-700 { background-color: #263646; }
+    .bg-emerald-500 { background-color: #10b981; }
+    .bg-emerald-400 { background-color: #34d399; }
+    .bg-emerald-500\/15 { background-color: rgba(16, 185, 129, 0.15); }
+    .bg-emerald-500\/20 { background-color: rgba(16, 185, 129, 0.2); }
+    .bg-emerald-950\/25 { background-color: rgba(2, 44, 34, 0.35); }
+    .bg-emerald-950\/30 { background-color: rgba(2, 44, 34, 0.42); }
+    .bg-emerald-950\/35 { background-color: rgba(2, 44, 34, 0.5); }
+    .bg-emerald-950\/95 { background-color: rgba(2, 44, 34, 0.95); }
+    .bg-blue-600 { background-color: #2563eb; }
+    .bg-blue-500\/20 { background-color: rgba(59, 130, 246, 0.2); }
+    .bg-blue-950\/20 { background-color: rgba(23, 37, 84, 0.35); }
+    .bg-blue-950\/25 { background-color: rgba(23, 37, 84, 0.42); }
+    .bg-amber-950\/25 { background-color: rgba(69, 26, 3, 0.4); }
+    .bg-amber-950\/35 { background-color: rgba(69, 26, 3, 0.52); }
+    .bg-amber-950\/95 { background-color: rgba(69, 26, 3, 0.95); }
+    .bg-rose-600 { background-color: #e11d48; }
+    .bg-rose-500\/20 { background-color: rgba(244, 63, 94, 0.2); }
+    .bg-rose-950\/95 { background-color: rgba(76, 5, 25, 0.95); }
+    .bg-black\/75 { background-color: rgba(0, 0, 0, 0.78); }
+
+
+    .bg-gradient-to-br {
+      background-image: linear-gradient(to bottom right, var(--tw-gradient-from), var(--tw-gradient-via, var(--tw-gradient-to)), var(--tw-gradient-to));
+    }
+    .from-slatefelt-850 { --tw-gradient-from: #141e27; }
+    .via-slatefelt-900 { --tw-gradient-via: #0f161d; }
+    .to-slatefelt-900 { --tw-gradient-to: #0f161d; }
+    .to-slatefelt-950 { --tw-gradient-to: #090d11; }
+
+
+    .font-mono { font-family: var(--font-mono); }
+    .font-medium { font-weight: 500; }
+    .font-semibold { font-weight: 600; }
+    .font-bold { font-weight: 700; }
+    .font-extrabold { font-weight: 800; }
+    .italic { font-style: italic; }
+    .uppercase { text-transform: uppercase; }
+    .line-through { text-decoration: line-through; }
+    .leading-none { line-height: 1; }
+    .tracking-tight { letter-spacing: -0.025em; }
+    .tracking-wider { letter-spacing: 0.05em; }
+    .text-left { text-align: left; }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+
+
+    .text-\[10px\] { font-size: 10px; }
+    .text-\[11px\] { font-size: 11px; }
+    .text-xs { font-size: 0.75rem; line-height: 1rem; }
+    .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+    .text-base { font-size: 1rem; line-height: 1.5rem; }
+    .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+    .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+    .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+
+
+    .text-white { color: #ffffff; }
+    .text-slate-950 { color: #020617; }
+    .text-slate-100 { color: #f1f5f9; }
+    .text-slate-200 { color: #e2e8f0; }
+    .text-slate-300 { color: #cbd5e1; }
+    .text-slate-400 { color: #94a3b8; }
+    .text-slate-500 { color: #64748b; }
+    .text-slate-600 { color: #475569; }
+    .text-emerald-100 { color: #d1fae5; }
+    .text-emerald-300 { color: #6ee7b7; }
+    .text-emerald-400 { color: #34d399; }
+    .text-blue-300 { color: #93c5fd; }
+    .text-blue-400 { color: #60a5fa; }
+    .text-amber-100 { color: #fef3c7; }
+    .text-amber-200 { color: #fde68a; }
+    .text-amber-300 { color: #fcd34d; }
+    .text-rose-100 { color: #ffe4e6; }
+    .text-rose-300 { color: #fda4af; }
+    .text-rose-400 { color: #fb7185; }
+
+
+    .opacity-0 { opacity: 0; }
+    .opacity-30 { opacity: 0.3; }
+    .opacity-35 { opacity: 0.35; }
+    .opacity-40 { opacity: 0.4; }
+    .opacity-50 { opacity: 0.5; }
+    .opacity-75 { opacity: 0.75; }
+    .opacity-80 { opacity: 0.8; }
+    .grayscale { filter: grayscale(100%); }
+
+
+    .shadow { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.25); }
+    .shadow-md { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4); }
+    .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.45); }
+    .shadow-xl { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }
+    .shadow-2xl { box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65); }
+
+
+    .backdrop-blur { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+    .backdrop-blur-sm { backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+    .transition { transition: all 0.18s ease; }
+    .transition-all { transition: all 0.25s ease; }
+    .transition-transform { transition: transform 0.18s ease; }
+    .duration-300 { transition-duration: 300ms; }
+    .transform { transform: translateZ(0); }
+
+
+    /* Hover & Active States */
+    .hover\:bg-emerald-400:hover:not(:disabled) { background-color: #34d399; }
+    .hover\:bg-emerald-500\/25:hover:not(:disabled) { background-color: rgba(16, 185, 129, 0.25); }
+    .hover\:bg-emerald-600\/25:hover:not(:disabled) { background-color: rgba(5, 150, 105, 0.25); }
+    .hover\:bg-blue-500:hover:not(:disabled) { background-color: #3b82f6; }
+    .hover\:bg-blue-600\/25:hover:not(:disabled) { background-color: rgba(37, 99, 235, 0.25); }
+    .hover\:bg-amber-600\/20:hover:not(:disabled) { background-color: rgba(217, 119, 6, 0.2); }
+    .hover\:bg-rose-500:hover:not(:disabled) { background-color: #f43f5e; }
+    .hover\:bg-rose-900\/60:hover:not(:disabled) { background-color: rgba(136, 19, 55, 0.6); }
+    .hover\:bg-slatefelt-700:hover:not(:disabled) { background-color: #263646; }
+    .hover\:bg-slatefelt-800:hover:not(:disabled) { background-color: #1a2632; }
+    .hover\:border-emerald-500:hover:not(:disabled) { border-color: #10b981; }
+    .hover\:border-blue-500\/50:hover:not(:disabled) { border-color: rgba(59, 130, 246, 0.5); }
+    .hover\:border-amber-500\/50:hover:not(:disabled) { border-color: rgba(245, 158, 11, 0.5); }
+    .hover\:border-slate-500:hover:not(:disabled) { border-color: #64748b; }
+    .hover\:text-white:hover:not(:disabled) { color: #ffffff; }
+    .hover\:text-slate-200:hover:not(:disabled) { color: #e2e8f0; }
+    .hover\:text-slate-300:hover:not(:disabled) { color: #cbd5e1; }
+    .hover\:text-blue-300:hover:not(:disabled) { color: #93c5fd; }
+    .hover\:text-amber-300:hover:not(:disabled) { color: #fcd34d; }
+    .hover\:text-rose-300:hover:not(:disabled) { color: #fda4af; }
+    .hover\:underline:hover { text-decoration: underline; }
+    .active\:scale-\[0\.98\]:active { transform: scale(0.98); }
+    .active\:scale-\[0\.99\]:active { transform: scale(0.99); }
+    .disabled\:opacity-30:disabled { opacity: 0.3; }
+    .disabled\:opacity-35:disabled { opacity: 0.35; }
+    .disabled\:opacity-40:disabled { opacity: 0.4; }
+    .disabled\:pointer-events-none:disabled { pointer-events: none; }
+
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: #10b981;
+    }
+
+
+    table { border-collapse: collapse; }
+    .border-collapse { border-collapse: collapse; }
+
+
+    /* Responsive Breakpoints */
+    @media (min-width: 640px) {
+      .sm\:flex-initial { flex: 0 1 auto; }
+      .sm\:flex-row { flex-direction: row; }
+      .sm\:flex-nowrap { flex-wrap: nowrap; }
+      .sm\:w-auto { width: auto; }
+      .sm\:p-5 { padding: 1.25rem; }
+      .sm\:p-6 { padding: 1.5rem; }
+      .sm\:text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+      .sm\:text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+      .sm\:text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+      .sm\:text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+      .sm\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .sm\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .sm\:grid-cols-12 { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+      .sm\:col-span-1 { grid-column: span 1 / span 1; }
+      .sm\:col-span-2 { grid-column: span 2 / span 2; }
+      .sm\:col-span-5 { grid-column: span 5 / span 5; }
+    }
+
+
+    @media (min-width: 1024px) {
+      .lg\:grid-cols-12 { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+      .lg\:col-span-5 { grid-column: span 5 / span 5; }
+      .lg\:col-span-7 { grid-column: span 7 / span 7; }
+    }
+
+
+    /* Authentic Pool Ball Styling */
+    .pool-ball {
+      position: relative;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-sans);
+      font-weight: 800;
+      box-shadow:
+        inset -4px -5px 8px rgba(0, 0, 0, 0.55),
+        inset 3px 3px 6px rgba(255, 255, 255, 0.35),
+        0 4px 10px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+
+    .pool-ball-number {
+      background: #ffffff;
+      color: #0f172a;
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.3);
+      line-height: 1;
+    }
+
+
+    .pool-ball.stripe {
+      background: #f8fafc !important;
+    }
+    .pool-ball.stripe::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 22%;
+      bottom: 22%;
+      background: var(--ball-color);
+      z-index: 1;
+    }
+
+
+    .felt-surface {
+      background-image: radial-gradient(rgba(16, 185, 129, 0.06) 1px, transparent 0);
+      background-size: 20px 20px;
+    }
+
+
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f161d;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #263646;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #364b60;
+    }
+
+
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.35); }
+      50% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+    }
+    .active-shooter-ring {
+      animation: pulseGlow 2.4s infinite;
+    }
+
+
+    @keyframes ping {
+      75%, 100% {
+        transform: scale(1.8);
+        opacity: 0;
+      }
+    }
+    .animate-ping {
+      animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+    }
+  </style>
+</head>
+<body class="min-h-screen felt-surface flex flex-col">
+
+
+  <!-- Top Navigation Bar -->
+  <header class="sticky top-0 z-30 bg-slatefelt-900/95 backdrop-blur border-b border-slatefelt-700/80 px-4 py-3">
+    <div class="max-w-5xl mx-auto flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="pool-ball stripe w-8 h-8 text-xs" style="--ball-color: #eab308;">
+          <span class="pool-ball-number w-4 h-4 text-[10px]">9</span>
+        </div>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <h1 class="font-extrabold text-base sm:text-lg tracking-tight text-white leading-none truncate">
+              RingGame <span class="text-emerald-400">Pro</span>
+            </h1>
+            <span id="offline-status-badge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold tracking-wide shrink-0" title="100% Self-Contained Offline App & Local Storage Active">
+              <span id="offline-status-dot" class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              <span id="offline-status-text">Offline Ready</span>
+            </span>
+          </div>
+          <p id="header-subtitle" class="text-[11px] text-slate-400 font-medium mt-0.5 truncate">Billiards Ring Game Tracker</p>
+        </div>
+      </div>
+
+
+      <div id="header-actions" class="flex items-center gap-2 shrink-0">
+        <!-- Dynamically populated based on view -->
+      </div>
+    </div>
+  </header>
+
+
+  <!-- Toast / Non-Blocking Notification Banner -->
+  <div id="toast-container" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none flex flex-col items-center gap-2 w-full max-w-md px-4"></div>
+
+
+  <!-- Main Content Container -->
+  <main id="app-root" class="flex-1 max-w-5xl w-full mx-auto px-4 py-5 pb-24">
+    <!-- Views rendered via JS -->
+  </main>
+
+
+  <!-- Modal Container -->
+  <div id="modal-backdrop" class="hidden fixed inset-0 z-40 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div id="modal-content" class="bg-slatefelt-900 border border-slatefelt-700 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+      <!-- Modal content injected here -->
+    </div>
+  </div>
+
+
+  <script>
+    /**
+     * PWA BOOTSTRAP: Inline App Icon (SVG + Canvas PNG), Dynamic Manifest, & Offline Service Worker
+     */
+  (function initOfflinePWA() {
+    const statusTextEl = document.getElementById('offline-status-text');
+
+    // Don't use the service worker while running locally in Visual Studio.
+    // This prevents cached files from hiding development changes.
+    const isDevelopment =
+        location.hostname === 'localhost' ||
+        location.hostname === '127.0.0.1';
+
+    if (isDevelopment) {
+
+        // Remove any service worker that may already be registered.
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+                registrations.forEach(registration => {
+                    registration.unregister();
+                });
+            });
+        }
+
+        if (statusTextEl) {
+            statusTextEl.textContent = 'Development Mode';
+        }
+
+        return;
+    }
+
+    // Production / phone version
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker
+                .register('./service-worker.js')
+                .then(() => {
+                    if (statusTextEl) {
+                        statusTextEl.textContent = 'Offline Ready';
+                    }
+                })
+                .catch(() => {
+                    if (statusTextEl) {
+                        statusTextEl.textContent = 'Online Only';
+                    }
+                });
+        });
+    }
+})();
+
+    /**
+     * Pool Ball Color Metadata (Standard WPA / Aramith Colors)
+     */
+    const BALL_STYLES = {
+      1:  { color: '#eab308', stripe: false, name: 'Yellow' },
+      2:  { color: '#2563eb', stripe: false, name: 'Blue' },
+      3:  { color: '#dc2626', stripe: false, name: 'Red' },
+      4:  { color: '#7c3aed', stripe: false, name: 'Purple' },
+      5:  { color: '#f97316', stripe: false, name: 'Orange' },
+      6:  { color: '#16a34a', stripe: false, name: 'Green' },
+      7:  { color: '#881337', stripe: false, name: 'Maroon' },
+      8:  { color: '#1e293b', stripe: false, name: 'Black' },
+      9:  { color: '#eab308', stripe: true,  name: 'Yellow Stripe' },
+      10: { color: '#2563eb', stripe: true,  name: 'Blue Stripe' },
+      11: { color: '#dc2626', stripe: true,  name: 'Red Stripe' },
+      12: { color: '#7c3aed', stripe: true,  name: 'Purple Stripe' },
+      13: { color: '#f97316', stripe: true,  name: 'Orange Stripe' },
+      14: { color: '#16a34a', stripe: true,  name: 'Green Stripe' },
+      15: { color: '#881337', stripe: true,  name: 'Maroon Stripe' }
+    };
+
+
+    const STORAGE_KEY = 'ringgame_pro_state_v1';
+
+
+    /**
+     * Default Application State
+     */
+    function getDefaultState() {
+      return {
+        view: 'setup', // 'setup' | 'live'
+        config: {
+          playerCount: 4,
+          players: [
+            { id: 'p1', name: 'Player 1' },
+            { id: 'p2', name: 'Player 2' },
+            { id: 'p3', name: 'Player 3' },
+            { id: 'p4', name: 'Player 4' }
+          ],
+          format: '10-ball', // '9-ball' | '10-ball' | 'custom'
+          moneyBalls: [
+            { ball: 5, value: 0.25 },
+            { ball: 10, value: 0.50 }
+          ],
+          useBuyIn: false,
+          buyInAmount: 20
+        },
+        game: null
+      };
+    }
+
+
+    let state = loadState();
+    let activeTab = 'table'; // 'table' | 'racks' | 'ledger' | 'history'
+    let dragSourceIndex = null;
+    let editingRackNumber = null;
+
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.config) return parsed;
+        }
+      } catch (e) {
+        console.error('Failed to load saved state:', e);
+      }
+      return getDefaultState();
+    }
+
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) {
+        console.error('Failed to save state:', e);
+      }
+    }
+
+
+    /**
+     * Non-blocking Toast Notification
+     */
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const colors = {
+        info: 'bg-slatefelt-800 border-slatefelt-700 text-slate-100',
+        success: 'bg-emerald-950/95 border-emerald-500/60 text-emerald-100',
+        warning: 'bg-amber-950/95 border-amber-500/60 text-amber-100',
+        danger: 'bg-rose-950/95 border-rose-500/60 text-rose-100'
+      };
+      toast.className = `px-4 py-2.5 rounded-xl border shadow-xl text-sm font-medium backdrop-blur transition-all duration-300 transform translate-y-2 opacity-0 ${colors[type] || colors.info}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+
+
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      });
+
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 2600);
+    }
+
+
+    /**
+     * Helper: Render HTML for an authentic pool ball
+     */
+    function renderPoolBallHTML(num, sizeClass = 'w-10 h-10', numSizeClass = 'w-5 h-5 text-xs') {
+      const meta = BALL_STYLES[num] || { color: '#64748b', stripe: false };
+      const stripeClass = meta.stripe ? 'stripe' : '';
+      const bgStyle = meta.stripe ? `--ball-color: ${meta.color};` : `background-color: ${meta.color};`;
+      return `
+        <span class="pool-ball ${stripeClass} ${sizeClass}" style="${bgStyle}">
+          <span class="pool-ball-number ${numSizeClass}">${num}</span>
+        </span>
+      `;
+    }
+
+
+    /**
+     * Helper: Currency Formatting
+     */
+    function formatMoney(amount, showPlus = false) {
+      const num = Number(amount) || 0;
+      const absStr = Math.abs(num).toFixed(2);
+      if (num < 0) return `-$${absStr}`;
+      if (num > 0 && showPlus) return `+$${absStr}`;
+      return `$${absStr}`;
+    }
+
+
+    /**
+     * SETUP ACTIONS
+     */
+    function setPlayerCount(count) {
+      const newCount = Math.max(2, Math.min(12, parseInt(count, 10)));
+      const current = [...state.config.players];
+      if (newCount > current.length) {
+        for (let i = current.length; i < newCount; i++) {
+          current.push({ id: 'p' + (Date.now() + i), name: `Player ${i + 1}` });
+        }
+      } else if (newCount < current.length) {
+        current.length = newCount;
+      }
+      state.config.playerCount = newCount;
+      state.config.players = current;
+      saveState();
+      render();
+    }
+
+
+    function updatePlayerName(index, name) {
+      state.config.players[index].name = name;
+      saveState();
+    }
+
+
+    function movePlayerOrder(index, direction) {
+      const target = index + direction;
+      if (target < 0 || target >= state.config.players.length) return;
+      const arr = state.config.players;
+      [arr[index], arr[target]] = [arr[target], arr[index]];
+      saveState();
+      render();
+    }
+
+
+    function randomizePlayerOrder() {
+      const arr = [...state.config.players];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      state.config.players = arr;
+      saveState();
+      render();
+      showToast('Shooting order randomized (pills drawn)!', 'success');
+    }
+
+
+    function setGameFormat(fmt) {
+      state.config.format = fmt;
+      if (fmt === '9-ball') {
+        state.config.moneyBalls = [
+          { ball: 5, value: 0.25 },
+          { ball: 9, value: 0.50 }
+        ];
+      } else if (fmt === '10-ball') {
+        state.config.moneyBalls = [
+          { ball: 5, value: 0.25 },
+          { ball: 10, value: 0.50 }
+        ];
+      }
+      saveState();
+      render();
+    }
+
+
+    function updateMoneyBallValue(index, val) {
+      const parsed = Math.max(0.25, parseFloat(val) || 0);
+      state.config.moneyBalls[index].value = parsed;
+      saveState();
+    }
+
+
+    function removeMoneyBall(index) {
+      if (state.config.moneyBalls.length <= 1) {
+        showToast('At least one money ball is required.', 'warning');
+        return;
+      }
+      state.config.moneyBalls.splice(index, 1);
+      saveState();
+      render();
+    }
+
+
+    function addCustomMoneyBall(ballNum) {
+        const num = parseInt(ballNum, 10);
+
+        // Limit the available ball numbers based on game format.
+        let maxBall = 15;
+
+        if (state.config.format === '9-ball') {
+            maxBall = 9;
+        } else if (state.config.format === '10-ball') {
+            maxBall = 10;
+        }
+
+        if (!num || num < 1 || num > maxBall) {
+            return;
+        }
+
+        // Prevent duplicate money balls.
+        if (state.config.moneyBalls.some(mb => mb.ball === num)) {
+            showToast(`Ball #${num} is already a money ball.`, 'warning');
+            return;
+        }
+
+        state.config.moneyBalls.push({
+            ball: num,
+            value: 0.25
+        });
+
+        state.config.moneyBalls.sort((a, b) => a.ball - b.ball);
+
+        saveState();
+        render();
+    }
+
+
+    function toggleBuyIn(enabled) {
+      state.config.useBuyIn = enabled;
+      saveState();
+      render();
+    }
+
+
+    function updateBuyInAmount(val) {
+      state.config.buyInAmount = Math.max(1, parseFloat(val) || 20);
+      saveState();
+    }
+
+
+    /**
+     * START GAME
+     */
+    function startMatch() {
+      try {
+        if (!state.config || !Array.isArray(state.config.players) || state.config.players.length < 2) {
+          showToast('Please configure at least 2 players before starting.', 'warning');
+          return;
+        }
+
+
+        const players = state.config.players.map((p, idx) => ({
+          id: p.id || ('p' + (idx + 1)),
+          name: (p.name || '').trim() || `Player ${idx + 1}`,
+          eliminated: false
+        }));
+
+
+        if (!Array.isArray(state.config.moneyBalls) || state.config.moneyBalls.length === 0) {
+          showToast('Add at least one money ball before starting.', 'warning');
+          return;
+        }
+
+
+        const moneyBalls = state.config.moneyBalls.map(mb => ({
+          ball: Number(mb.ball),
+          value: Math.max(0.25, Number(mb.value) || 1)
+        }));
+
+
+        const ledger = {};
+        players.forEach(p1 => {
+          ledger[p1.id] = {};
+          players.forEach(p2 => {
+            if (p1.id !== p2.id) ledger[p1.id][p2.id] = 0;
+          });
+        });
+
+
+        state.game = {
+          startedAt: new Date().toISOString(),
+          rackNumber: 1,
+          players,
+          currentShooterIndex: 0,
+          previousShooterIndex: null,
+          canPassBack: false,
+          moneyBalls,
+          useBuyIn: Boolean(state.config.useBuyIn),
+          buyInAmount: Math.max(1, Number(state.config.buyInAmount) || 20),
+          racks: [
+            {
+              rackNumber: 1,
+              breakerId: players[0].id,
+              completed: false,
+              pocketedBalls: []
+            }
+          ],
+          ledger,
+          history: [],
+          snapshots: []
+        };
+
+
+        state.view = 'live';
+        activeTab = 'table';
+        saveState();
+        render();
+        showToast(`Rack #1 started! ${players[0].name} breaks.`, 'success');
+      } catch (err) {
+        console.error('Error starting match:', err);
+        showToast('Could not start match. Please check your setup settings.', 'danger');
+      }
+    }
+
+
+    /**
+     * LIVE GAME ENGINE
+     */
+    function getCurrentRack() {
+      if (!state.game || !state.game.racks || state.game.racks.length === 0) return null;
+      return state.game.racks[state.game.racks.length - 1];
+    }
+
+
+    function getPlayerById(id) {
+      if (!state.game) return null;
+      return state.game.players.find(p => p.id === id) || null;
+    }
+
+
+    function pushSnapshot() {
+      if (!state.game) return;
+      const snap = {
+        rackNumber: state.game.rackNumber,
+        players: JSON.parse(JSON.stringify(state.game.players)),
+        currentShooterIndex: state.game.currentShooterIndex,
+        previousShooterIndex: state.game.previousShooterIndex,
+        canPassBack: state.game.canPassBack,
+        racks: JSON.parse(JSON.stringify(state.game.racks)),
+        ledger: JSON.parse(JSON.stringify(state.game.ledger)),
+        history: JSON.parse(JSON.stringify(state.game.history))
+      };
+      state.game.snapshots.push(snap);
+      if (state.game.snapshots.length > 50) {
+        state.game.snapshots.shift();
+      }
+    }
+
+
+    /**
+     * Recalculate entire pairwise ledger and player elimination statuses from all racks
+     */
+    function recalculateAllBalancesFromRacks() {
+      if (!state.game) return;
+      const g = state.game;
+
+
+      g.players.forEach(p => {
+        p.eliminated = false;
+        g.ledger[p.id] = {};
+        g.players.forEach(other => {
+          if (p.id !== other.id) g.ledger[p.id][other.id] = 0;
+        });
+      });
+
+
+      g.racks.forEach(rack => {
+        rack.pocketedBalls.forEach(entry => {
+          const shooter = getPlayerById(entry.shooterId);
+          if (!shooter) return;
+
+
+          const activePayers = g.players.filter(p => p.id !== shooter.id && !p.eliminated);
+          let totalCollected = 0;
+          const breakdown = [];
+
+
+          activePayers.forEach(payer => {
+            let amountOwed = entry.value;
+
+
+            if (g.useBuyIn) {
+              const payerNet = getPlayerNetBalance(payer.id);
+              const remainingStack = g.buyInAmount + payerNet;
+              if (remainingStack <= amountOwed) {
+                amountOwed = Math.max(0, remainingStack);
+                payer.eliminated = true;
+              }
+            }
+
+
+            if (amountOwed > 0) {
+              g.ledger[payer.id][shooter.id] = +(g.ledger[payer.id][shooter.id] + amountOwed).toFixed(2);
+              totalCollected = +(totalCollected + amountOwed).toFixed(2);
+              breakdown.push({ payerId: payer.id, payerName: payer.name, amount: amountOwed });
+            }
+          });
+
+
+          entry.totalCollected = totalCollected;
+          entry.breakdown = breakdown;
+        });
+      });
+    }
+
+
+    function getActivePlayerIndices() {
+      if (!state.game) return [];
+      return state.game.players
+        .map((p, idx) => (!p.eliminated ? idx : -1))
+        .filter(idx => idx !== -1);
+    }
+
+
+    function getNextActiveIndex(fromIndex) {
+      const total = state.game.players.length;
+      for (let step = 1; step <= total; step++) {
+        const candidate = (fromIndex + step) % total;
+        if (!state.game.players[candidate].eliminated) {
+          return candidate;
+        }
+      }
+      return fromIndex;
+    }
+
+
+    function nextShooter() {
+      if (!state.game) return;
+      const activeIndices = getActivePlayerIndices();
+      if (activeIndices.length <= 1) {
+        showToast('Only one active player remaining!', 'warning');
+        return;
+      }
+
+
+      pushSnapshot();
+      const prevIdx = state.game.currentShooterIndex;
+      const nextIdx = getNextActiveIndex(prevIdx);
+
+
+      state.game.previousShooterIndex = prevIdx;
+      state.game.currentShooterIndex = nextIdx;
+      state.game.canPassBack = true;
+
+
+      state.game.history.unshift({
+        id: Date.now(),
+        type: 'turn',
+        rack: state.game.rackNumber,
+        fromName: state.game.players[prevIdx].name,
+        toName: state.game.players[nextIdx].name,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      });
+
+
+      saveState();
+      render();
+    }
+
+
+    function passShotBack() {
+      if (!state.game || !state.game.canPassBack || state.game.previousShooterIndex === null) {
+        showToast('No previous shot available to pass back.', 'warning');
+        return;
+      }
+
+
+      pushSnapshot();
+      const currentIdx = state.game.currentShooterIndex;
+      const targetIdx = state.game.previousShooterIndex;
+
+
+      state.game.currentShooterIndex = targetIdx;
+      state.game.previousShooterIndex = null;
+      state.game.canPassBack = false;
+
+
+      state.game.history.unshift({
+        id: Date.now(),
+        type: 'pass_back',
+        rack: state.game.rackNumber,
+        fromName: state.game.players[currentIdx].name,
+        toName: state.game.players[targetIdx].name,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      });
+
+
+      saveState();
+      render();
+      showToast(`Shot passed back to ${state.game.players[targetIdx].name}!`, 'info');
+    }
+
+
+    function scoreMoneyBall(ballObj) {
+      if (!state.game) return;
+      const activeIndices = getActivePlayerIndices();
+      if (activeIndices.length <= 1) {
+        showToast('Game over — only 1 player remains.', 'warning');
+        return;
+      }
+
+
+      const currentRack = getCurrentRack();
+      if (!currentRack) return;
+
+
+      if (currentRack.pocketedBalls.some(pb => pb.ball === ballObj.ball)) {
+        showToast(`The ${ballObj.ball}-ball was already pocketed in Rack #${currentRack.rackNumber}.`, 'warning');
+        return;
+      }
+
+
+      pushSnapshot();
+
+
+      const shooterIdx = state.game.currentShooterIndex;
+      const shooter = state.game.players[shooterIdx];
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+
+      const pocketRecord = {
+        id: 'pb_' + Date.now() + '_' + ballObj.ball,
+        ball: ballObj.ball,
+        value: ballObj.value,
+        shooterId: shooter.id,
+        totalCollected: 0,
+        breakdown: [],
+        timestamp: timeStr
+      };
+
+
+      currentRack.pocketedBalls.push(pocketRecord);
+      recalculateAllBalancesFromRacks();
+
+
+      state.game.canPassBack = false;
+      state.game.previousShooterIndex = null;
+
+
+      const eventEntry = {
+        id: Date.now(),
+        type: 'money_ball',
+        rack: state.game.rackNumber,
+        shooterId: shooter.id,
+        shooterName: shooter.name,
+        ball: ballObj.ball,
+        ballValue: ballObj.value,
+        totalCollected: pocketRecord.totalCollected,
+        breakdown: pocketRecord.breakdown,
+        timestamp: timeStr
+      };
+
+
+      state.game.history.unshift(eventEntry);
+
+
+      const allMoneyBallsPocketed = state.game.moneyBalls.every(mb =>
+        currentRack.pocketedBalls.some(pb => pb.ball === mb.ball)
+      );
+
+
+      if (allMoneyBallsPocketed && getActivePlayerIndices().length > 1) {
+        advanceToNextRackInternal(shooterIdx, `All money balls cleared! ${shooter.name} collected +${formatMoney(pocketRecord.totalCollected)} & breaks Rack #${state.game.rackNumber + 1}!`);
+      } else {
+        const remainingCount = state.game.moneyBalls.length - currentRack.pocketedBalls.length;
+        saveState();
+        render();
+        showToast(
+          `${shooter.name} pocketed the ${ballObj.ball}-ball (+${formatMoney(pocketRecord.totalCollected)})! ${remainingCount} money ball${remainingCount === 1 ? '' : 's'} left in rack.`,
+          'success'
+        );
+      }
+    }
+
+
+    function advanceToNextRackInternal(breakerIdx, customToastMsg) {
+      const g = state.game;
+      const currentRack = getCurrentRack();
+      if (currentRack) {
+        currentRack.completed = true;
+      }
+
+
+      const nextRackNum = g.rackNumber + 1;
+      const breaker = g.players[breakerIdx];
+
+
+      g.rackNumber = nextRackNum;
+      g.currentShooterIndex = breakerIdx;
+      g.previousShooterIndex = null;
+      g.canPassBack = false;
+
+
+      g.racks.push({
+        rackNumber: nextRackNum,
+        breakerId: breaker.id,
+        completed: false,
+        pocketedBalls: []
+      });
+
+
+      g.history.unshift({
+        id: Date.now() + 1,
+        type: 'new_rack',
+        rack: nextRackNum,
+        breakerName: breaker.name,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      });
+
+
+      saveState();
+      render();
+      if (customToastMsg) {
+        showToast(customToastMsg, 'success');
+      }
+    }
+
+
+    function openNextRackModal() {
+      if (!state.game) return;
+      const g = state.game;
+      const currentRack = getCurrentRack();
+      const activeIndices = getActivePlayerIndices();
+
+
+      let defaultBreakerIdx = g.currentShooterIndex;
+      if (currentRack && currentRack.pocketedBalls.length > 0) {
+        const lastPocket = currentRack.pocketedBalls[currentRack.pocketedBalls.length - 1];
+        const foundIdx = g.players.findIndex(p => p.id === lastPocket.shooterId && !p.eliminated);
+        if (foundIdx !== -1) defaultBreakerIdx = foundIdx;
+      }
+
+
+      const unpocketed = g.moneyBalls.filter(
+        mb => !currentRack.pocketedBalls.some(pb => pb.ball === mb.ball)
+      );
+
+
+      const html = `
+        <div class="p-5 sm:p-6">
+          <div class="flex items-center justify-between border-b border-slatefelt-700 pb-4">
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">Rack Transition</span>
+              <h2 class="text-xl font-extrabold text-white mt-0.5">Advance to Rack #${g.rackNumber + 1}</h2>
+            </div>
+            <button onclick="closeModal()" class="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slatefelt-800">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
+
+
+          ${unpocketed.length > 0 ? `
+            <div class="mt-4 bg-amber-950/35 border border-amber-500/40 rounded-xl p-3.5 text-xs text-amber-200">
+              <strong>Note:</strong> The ${unpocketed.map(b => b.ball + '-ball').join(', ')} ${unpocketed.length === 1 ? 'has' : 'have'} not been marked pocketed in Rack #${g.rackNumber}. Starting Rack #${g.rackNumber + 1} will leave ${unpocketed.length === 1 ? 'it' : 'them'} uncollected for this rack.
+            </div>
+          ` : ''}
+
+
+          <div class="mt-4">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+              Who Breaks Rack #${g.rackNumber + 1}?
+            </label>
+            <div class="space-y-2">
+              ${activeIndices.map(idx => {
+                const p = g.players[idx];
+                const isDefault = idx === defaultBreakerIdx;
+                return `
+                  <label class="flex items-center justify-between p-3 rounded-xl border cursor-pointer transition ${isDefault ? 'bg-emerald-500/15 border-emerald-500 text-white' : 'bg-slatefelt-850 border-slatefelt-700 text-slate-300 hover:border-slate-500'}">
+                    <div class="flex items-center gap-3">
+                      <input type="radio" name="next-breaker-radio" value="${idx}" ${isDefault ? 'checked' : ''} style="accent-color:#10b981;" class="w-4 h-4" />
+                      <span class="font-bold text-sm">${escapeHTML(p.name)}</span>
+                    </div>
+                    ${isDefault ? '<span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">Default</span>' : ''}
+                  </label>
+                `;
+              }).join('')}
+            </div>
+          </div>
+
+
+          <div class="flex gap-3 mt-6">
+            <button onclick="closeModal()" class="flex-1 py-3 px-4 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 text-slate-200 font-semibold text-sm">
+              Cancel
+            </button>
+            <button onclick="confirmManualNextRack()" class="flex-1 py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm shadow-lg">
+              Start Rack #${g.rackNumber + 1} &rarr;
+            </button>
+          </div>
+        </div>
+      `;
+      openModal(html);
+    }
+
+
+    function confirmManualNextRack() {
+      const selected = document.querySelector('input[name="next-breaker-radio"]:checked');
+      const breakerIdx = selected ? parseInt(selected.value, 10) : state.game.currentShooterIndex;
+      closeModal();
+      pushSnapshot();
+      const breakerName = state.game.players[breakerIdx].name;
+      advanceToNextRackInternal(breakerIdx, `Rack #${state.game.rackNumber + 1} started! ${breakerName} breaks.`);
+    }
+
+
+    function undoLastAction() {
+      if (!state.game || state.game.snapshots.length === 0) {
+        showToast('Nothing to undo.', 'warning');
+        return;
+      }
+      const prev = state.game.snapshots.pop();
+      state.game.rackNumber = prev.rackNumber;
+      state.game.players = prev.players;
+      state.game.currentShooterIndex = prev.currentShooterIndex;
+      state.game.previousShooterIndex = prev.previousShooterIndex;
+      state.game.canPassBack = prev.canPassBack;
+      state.game.racks = prev.racks;
+      state.game.ledger = prev.ledger;
+      state.game.history = prev.history;
+
+
+      saveState();
+      render();
+      showToast('Last action undone.', 'info');
+    }
+
+
+    /**
+     * FINANCIAL & DEBT SIMPLIFICATION CALCULATIONS
+     */
+    function getPlayerNetBalance(playerId) {
+      if (!state.game) return 0;
+      let net = 0;
+      state.game.players.forEach(other => {
+        if (other.id === playerId) return;
+        const owedToMe = state.game.ledger[other.id]?.[playerId] || 0;
+        const iOweThem = state.game.ledger[playerId]?.[other.id] || 0;
+        net += (owedToMe - iOweThem);
+      });
+      return +net.toFixed(2);
+    }
+
+
+    function getPairwiseNetDebts() {
+      if (!state.game) return [];
+      const debts = [];
+      const players = state.game.players;
+      for (let i = 0; i < players.length; i++) {
+        for (let j = i + 1; j < players.length; j++) {
+          const pA = players[i];
+          const pB = players[j];
+          const bOwesA = state.game.ledger[pB.id]?.[pA.id] || 0;
+          const aOwesB = state.game.ledger[pA.id]?.[pB.id] || 0;
+          const diff = +(bOwesA - aOwesB).toFixed(2);
+          if (diff > 0.005) {
+            debts.push({ from: pB, to: pA, amount: diff });
+          } else if (diff < -0.005) {
+            debts.push({ from: pA, to: pB, amount: Math.abs(diff) });
+          }
+        }
+      }
+      return debts.sort((a, b) => b.amount - a.amount);
+    }
+
+
+    function getSimplifiedSettlements() {
+      if (!state.game) return [];
+      const debtors = [];
+      const creditors = [];
+
+
+      state.game.players.forEach(p => {
+        const net = getPlayerNetBalance(p.id);
+        if (net < -0.005) {
+          debtors.push({ player: p, amount: Math.abs(net) });
+        } else if (net > 0.005) {
+          creditors.push({ player: p, amount: net });
+        }
+      });
+
+
+      debtors.sort((a, b) => b.amount - a.amount);
+      creditors.sort((a, b) => b.amount - a.amount);
+
+
+      const settlements = [];
+      let i = 0;
+      let j = 0;
+
+
+      while (i < debtors.length && j < creditors.length) {
+        const d = debtors[i];
+        const c = creditors[j];
+        const transfer = +Math.min(d.amount, c.amount).toFixed(2);
+
+
+        if (transfer > 0.005) {
+          settlements.push({
+            from: d.player,
+            to: c.player,
+            amount: transfer
+          });
+        }
+
+
+        d.amount = +(d.amount - transfer).toFixed(2);
+        c.amount = +(c.amount - transfer).toFixed(2);
+
+
+        if (d.amount <= 0.005) i++;
+        if (c.amount <= 0.005) j++;
+      }
+
+
+      return settlements;
+    }
+
+
+    /**
+     * MODALS (End Game Summary & Reset Confirmation)
+     */
+    function openModal(html) {
+      const backdrop = document.getElementById('modal-backdrop');
+      const content = document.getElementById('modal-content');
+      content.innerHTML = html;
+      backdrop.classList.remove('hidden');
+    }
+
+
+    function closeModal() {
+      document.getElementById('modal-backdrop').classList.add('hidden');
+    }
+
+
+    function openEndGameModal() {
+      if (!state.game) return;
+      const simplified = getSimplifiedSettlements();
+      const pairwise = getPairwiseNetDebts();
+
+
+      const statsByPlayer = {};
+      state.game.players.forEach(p => {
+        statsByPlayer[p.id] = { name: p.name, ballsCount: 0, racksBroken: 0, net: getPlayerNetBalance(p.id) };
+      });
+
+
+      state.game.racks.forEach(rack => {
+        if (statsByPlayer[rack.breakerId]) {
+          statsByPlayer[rack.breakerId].racksBroken += 1;
+        }
+        rack.pocketedBalls.forEach(pb => {
+          if (statsByPlayer[pb.shooterId]) {
+            statsByPlayer[pb.shooterId].ballsCount += 1;
+          }
+        });
+      });
+
+
+      const totalBallsPocketed = state.game.racks.reduce((sum, r) => sum + r.pocketedBalls.length, 0);
+      const rankedPlayers = Object.values(statsByPlayer).sort((a, b) => b.net - a.net);
+
+
+      const html = `
+        <div class="p-5 sm:p-6">
+          <div class="flex items-center justify-between border-b border-slatefelt-700 pb-4">
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">Match Summary</span>
+              <h2 class="text-xl font-extrabold text-white mt-0.5">Final Settlement</h2>
+            </div>
+            <button onclick="closeModal()" class="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slatefelt-800">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
+
+
+          <div class="grid grid-cols-2 gap-3 my-4">
+            <div class="bg-slatefelt-850 border border-slatefelt-700/70 rounded-xl p-3">
+              <div class="text-xs text-slate-400">Racks Played</div>
+              <div class="text-xl font-extrabold text-white font-mono mt-0.5">${state.game.rackNumber}</div>
+            </div>
+            <div class="bg-slatefelt-850 border border-slatefelt-700/70 rounded-xl p-3">
+              <div class="text-xs text-slate-400">Money Balls Pocketed</div>
+              <div class="text-xl font-extrabold text-emerald-400 font-mono mt-0.5">
+                ${totalBallsPocketed}
+              </div>
+            </div>
+          </div>
+
+
+          <div class="mb-5">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Final Standings</h3>
+            <div class="space-y-2">
+              ${rankedPlayers.map((p, idx) => {
+                const netColor = p.net > 0 ? 'text-emerald-400' : (p.net < 0 ? 'text-rose-400' : 'text-slate-300');
+                const stackText = state.game.useBuyIn ? ` (Stack: ${formatMoney(state.game.buyInAmount + p.net)})` : '';
+                return `
+                  <div class="flex items-center justify-between bg-slatefelt-850 px-3.5 py-2.5 rounded-xl border border-slatefelt-700/60">
+                    <div class="flex items-center gap-2.5">
+                      <span class="w-6 h-6 rounded-full bg-slatefelt-700 text-xs font-bold flex items-center justify-center text-slate-200">${idx + 1}</span>
+                      <div>
+                        <div class="font-semibold text-sm text-white">${escapeHTML(p.name)}</div>
+                        <div class="text-[11px] text-slate-400">${p.ballsCount} money ball${p.ballsCount === 1 ? '' : 's'} &bull; ${p.racksBroken} break${p.racksBroken === 1 ? '' : 's'}${stackText}</div>
+                      </div>
+                    </div>
+                    <div class="font-mono font-bold text-base ${netColor}">${formatMoney(p.net, true)}</div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+
+
+          <div class="mb-5">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400">Simplified Payouts (Fewest Transfers)</h3>
+              <button onclick="copySettlementSummary()" class="text-xs font-semibold text-blue-400 hover:text-blue-300 flex items-center gap-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                Copy Text
+              </button>
+            </div>
+            ${simplified.length === 0 ? `
+              <div class="bg-slatefelt-850 border border-slatefelt-700/60 rounded-xl p-4 text-center text-sm text-slate-400">
+                Everyone is even ($0)! No payouts needed.
+              </div>
+            ` : `
+              <div class="space-y-2">
+                ${simplified.map(s => `
+                  <div class="flex items-center justify-between bg-emerald-950/30 border border-emerald-500/30 px-3.5 py-2.5 rounded-xl">
+                    <div class="text-sm text-slate-200">
+                      <span class="font-bold text-rose-300">${escapeHTML(s.from.name)}</span>
+                      <span class="text-slate-400 mx-1.5">pays</span>
+                      <span class="font-bold text-emerald-300">${escapeHTML(s.to.name)}</span>
+                    </div>
+                    <span class="font-mono font-extrabold text-emerald-400 text-base">${formatMoney(s.amount)}</span>
+                  </div>
+                `).join('')}
+              </div>
+            `}
+          </div>
+
+
+          ${pairwise.length > 0 ? `
+            <details class="mb-5 bg-slatefelt-850 border border-slatefelt-700/60 rounded-xl p-3">
+              <summary class="text-xs font-semibold text-slate-300 cursor-pointer select-none">View Direct Pairwise Debts (${pairwise.length})</summary>
+              <div class="mt-2.5 space-y-1.5 pt-2 border-t border-slatefelt-700/60">
+                ${pairwise.map(d => `
+                  <div class="flex justify-between text-xs text-slate-300">
+                    <span>${escapeHTML(d.from.name)} &rarr; ${escapeHTML(d.to.name)}</span>
+                    <span class="font-mono font-semibold text-slate-200">${formatMoney(d.amount)}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </details>
+          ` : ''}
+
+
+          <div class="flex flex-col sm:flex-row gap-2.5 pt-2">
+            <button onclick="closeModal()" class="flex-1 py-3 px-4 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 text-slate-200 font-semibold text-sm transition">
+              Back to Table
+            </button>
+            <button onclick="resetToSetup()" class="flex-1 py-3 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm transition shadow-lg">
+              End Match & New Setup
+            </button>
+          </div>
+        </div>
+      `;
+
+
+      openModal(html);
+    }
+
+
+    function confirmResetModal() {
+      const html = `
+        <div class="p-6">
+          <h2 class="text-lg font-extrabold text-white">Start a New Game?</h2>
+          <p class="text-sm text-slate-400 mt-1.5">This will clear the current rack progress and balances and return you to the setup screen.</p>
+          <div class="flex gap-3 mt-6">
+            <button onclick="closeModal()" class="flex-1 py-2.5 px-4 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 text-slate-200 font-semibold text-sm">
+              Cancel
+            </button>
+            <button onclick="resetToSetup()" class="flex-1 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm">
+              Yes, Reset Game
+            </button>
+          </div>
+        </div>
+      `;
+      openModal(html);
+    }
+
+
+    function resetToSetup() {
+      closeModal();
+      state.view = 'setup';
+      state.game = null;
+      saveState();
+      render();
+      showToast('Returned to game setup.', 'info');
+    }
+
+
+    function copySettlementSummary() {
+      if (!state.game) return;
+      const simplified = getSimplifiedSettlements();
+      const lines = [
+        `🎱 RingGame Pro Settlement (${state.config.format.toUpperCase()} - ${state.game.rackNumber} Racks)`,
+        '-----------------------------------'
+      ];
+      state.game.players.forEach(p => {
+        const net = getPlayerNetBalance(p.id);
+        lines.push(`${p.name}: ${formatMoney(net, true)}`);
+      });
+      lines.push('');
+      lines.push('💸 Settle Up:');
+      if (simplified.length === 0) {
+        lines.push('All square ($0)!');
+      } else {
+        simplified.forEach(s => {
+          lines.push(`• ${s.from.name} pays ${s.to.name} ${formatMoney(s.amount)}`);
+        });
+      }
+
+
+      const text = lines.join('\n');
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        showToast('Settlement summary copied to clipboard!', 'success');
+      } catch (err) {
+        showToast('Unable to copy text.', 'warning');
+      }
+      document.body.removeChild(textarea);
+    }
+
+
+    /**
+     * EDIT / ADJUST PAST RACK MODAL & ACTIONS
+     */
+    function openEditRackModal(rackNumber) {
+      if (!state.game) return;
+      const rack = state.game.racks.find(r => r.rackNumber === rackNumber);
+      if (!rack) return;
+      editingRackNumber = rackNumber;
+      renderEditRackModalContent();
+    }
+
+
+    function renderEditRackModalContent() {
+      const g = state.game;
+      const rack = g.racks.find(r => r.rackNumber === editingRackNumber);
+      if (!rack) return;
+
+
+      const unpocketedBalls = g.moneyBalls.filter(
+        mb => !rack.pocketedBalls.some(pb => pb.ball === mb.ball)
+      );
+
+
+      const html = `
+        <div class="p-5 sm:p-6">
+          <div class="flex items-center justify-between border-b border-slatefelt-700 pb-4">
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-blue-400">Rack Adjustment</span>
+              <h2 class="text-xl font-extrabold text-white mt-0.5">Edit Rack #${rack.rackNumber}</h2>
+            </div>
+            <button onclick="closeModal()" class="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slatefelt-800">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
+
+
+          <div class="mt-4 bg-slatefelt-850 border border-slatefelt-700/70 rounded-xl p-3.5">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Rack Breaker</label>
+            <select
+              onchange="updateRackBreaker(${rack.rackNumber}, this.value)"
+              class="w-full bg-slatefelt-950 border border-slatefelt-700 rounded-lg px-3 py-2 text-sm text-white font-semibold">
+              ${g.players.map(p => `
+                <option value="${p.id}" ${p.id === rack.breakerId ? 'selected' : ''}>${escapeHTML(p.name)}</option>
+              `).join('')}
+            </select>
+          </div>
+
+
+          <div class="mt-4">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+              Pocketed Money Balls in Rack #${rack.rackNumber}
+            </h3>
+
+
+            ${rack.pocketedBalls.length === 0 ? `
+              <div class="p-4 text-center bg-slatefelt-850 border border-slatefelt-700/60 rounded-xl text-xs text-slate-400">
+                No money balls logged in Rack #${rack.rackNumber}.
+              </div>
+            ` : `
+              <div class="space-y-2.5">
+                ${rack.pocketedBalls.map((pb, idx) => `
+                  <div class="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5 bg-slatefelt-850 border border-slatefelt-700/70 rounded-xl p-3">
+                    <div class="flex items-center gap-2.5">
+                      ${renderPoolBallHTML(pb.ball, 'w-9 h-9', 'w-4 h-4 text-[11px]')}
+                      <div>
+                        <div class="font-bold text-sm text-white">${pb.ball}-Ball</div>
+                        <div class="text-[11px] text-emerald-400 font-mono">${formatMoney(pb.value)} / player</div>
+                      </div>
+                    </div>
+
+
+                    <div class="flex items-center gap-2 ml-auto">
+                      <select
+                        onchange="reassignPocketedBallShooter(${rack.rackNumber}, ${idx}, this.value)"
+                        class="bg-slatefelt-950 border border-slatefelt-700 rounded-lg px-2.5 py-1.5 text-xs sm:text-sm text-white font-semibold">
+                        ${g.players.map(p => `
+                          <option value="${p.id}" ${p.id === pb.shooterId ? 'selected' : ''}>${escapeHTML(p.name)}</option>
+                        `).join('')}
+                      </select>
+
+
+                      <button
+                        onclick="deletePocketedBallFromRack(${rack.rackNumber}, ${idx})"
+                        class="p-2 rounded-lg bg-slatefelt-800 hover:bg-rose-900/60 text-slate-400 hover:text-rose-300 transition"
+                        title="Remove / Mark Unpocketed">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                      </button>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            `}
+          </div>
+
+
+          ${unpocketedBalls.length > 0 ? `
+            <div class="mt-4 pt-4 border-t border-slatefelt-700/70">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-2">
+                Add Missed Money Ball to Rack #${rack.rackNumber}
+              </h3>
+              <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                <select id="edit-rack-add-ball" class="sm:col-span-5 bg-slatefelt-950 border border-slatefelt-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white font-semibold">
+                  ${unpocketedBalls.map(mb => `<option value="${mb.ball}">${mb.ball}-Ball (${formatMoney(mb.value)}/ea)</option>`).join('')}
+                </select>
+                <select id="edit-rack-add-player" class="sm:col-span-5 bg-slatefelt-950 border border-slatefelt-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white font-semibold">
+                  ${g.players.map(p => `<option value="${p.id}">${escapeHTML(p.name)}</option>`).join('')}
+                </select>
+                <button
+                  onclick="addMissedBallToRack(${rack.rackNumber})"
+                  class="sm:col-span-2 py-2 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs sm:text-sm transition">
+                  + Add
+                </button>
+              </div>
+            </div>
+          ` : ''}
+
+
+          <div class="mt-6 pt-3 border-t border-slatefelt-700/70 flex justify-end">
+            <button onclick="closeModal()" class="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm transition">
+              Done & Save Changes
+            </button>
+          </div>
+        </div>
+      `;
+
+
+      openModal(html);
+    }
+
+
+    function updateRackBreaker(rackNumber, newBreakerId) {
+      const rack = state.game.racks.find(r => r.rackNumber === rackNumber);
+      if (!rack) return;
+      pushSnapshot();
+      rack.breakerId = newBreakerId;
+      saveState();
+      render();
+      renderEditRackModalContent();
+      showToast(`Updated Rack #${rackNumber} breaker.`, 'info');
+    }
+
+
+    function reassignPocketedBallShooter(rackNumber, pocketIndex, newShooterId) {
+      const rack = state.game.racks.find(r => r.rackNumber === rackNumber);
+      if (!rack || !rack.pocketedBalls[pocketIndex]) return;
+      pushSnapshot();
+      const entry = rack.pocketedBalls[pocketIndex];
+      entry.shooterId = newShooterId;
+      recalculateAllBalancesFromRacks();
+
+
+      const shooter = getPlayerById(newShooterId);
+      state.game.history.unshift({
+        id: Date.now(),
+        type: 'rack_edit',
+        rack: rackNumber,
+        description: `Reassigned ${entry.ball}-Ball in Rack #${rackNumber} to ${shooter ? shooter.name : 'player'}`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      });
+
+
+      saveState();
+      render();
+      renderEditRackModalContent();
+      showToast(`Reassigned ${entry.ball}-Ball & recalculated balances.`, 'success');
+    }
+
+
+    function deletePocketedBallFromRack(rackNumber, pocketIndex) {
+      const rack = state.game.racks.find(r => r.rackNumber === rackNumber);
+      if (!rack || !rack.pocketedBalls[pocketIndex]) return;
+      pushSnapshot();
+      const [removed] = rack.pocketedBalls.splice(pocketIndex, 1);
+      recalculateAllBalancesFromRacks();
+
+
+      state.game.history.unshift({
+        id: Date.now(),
+        type: 'rack_edit',
+        rack: rackNumber,
+        description: `Removed ${removed.ball}-Ball from Rack #${rackNumber}`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      });
+
+
+      saveState();
+      render();
+      renderEditRackModalContent();
+      showToast(`Removed ${removed.ball}-Ball from Rack #${rackNumber}.`, 'info');
+    }
+
+
+    function addMissedBallToRack(rackNumber) {
+      const rack = state.game.racks.find(r => r.rackNumber === rackNumber);
+      if (!rack) return;
+      const ballSelect = document.getElementById('edit-rack-add-ball');
+      const playerSelect = document.getElementById('edit-rack-add-player');
+      if (!ballSelect || !playerSelect) return;
+
+
+      const ballNum = parseInt(ballSelect.value, 10);
+      const shooterId = playerSelect.value;
+      const mbConfig = state.game.moneyBalls.find(m => m.ball === ballNum);
+      if (!mbConfig) return;
+
+
+      pushSnapshot();
+      rack.pocketedBalls.push({
+        id: 'pb_edit_' + Date.now(),
+        ball: ballNum,
+        value: mbConfig.value,
+        shooterId,
+        totalCollected: 0,
+        breakdown: [],
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      });
+
+
+      recalculateAllBalancesFromRacks();
+
+
+      const shooter = getPlayerById(shooterId);
+      state.game.history.unshift({
+        id: Date.now(),
+        type: 'rack_edit',
+        rack: rackNumber,
+        description: `Added missed ${ballNum}-Ball in Rack #${rackNumber} for ${shooter ? shooter.name : 'player'}`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      });
+
+
+      saveState();
+      render();
+      renderEditRackModalContent();
+      showToast(`Added ${ballNum}-Ball to Rack #${rackNumber} & updated balances.`, 'success');
+    }
+
+
+    function handleDragStart(e, index) {
+      dragSourceIndex = index;
+      e.dataTransfer.effectAllowed = 'move';
+    }
+
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    }
+
+
+    function handleDrop(e, targetIndex) {
+      e.preventDefault();
+      if (dragSourceIndex === null || dragSourceIndex === targetIndex) return;
+      const list = state.config.players;
+      const [moved] = list.splice(dragSourceIndex, 1);
+      list.splice(targetIndex, 0, moved);
+      dragSourceIndex = null;
+      saveState();
+      render();
+    }
+
+
+    /**
+     * XSS Escaping Helper
+     */
+    function escapeHTML(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+
+    /**
+     * RENDER SETUP VIEW
+     */
+    function renderSetupView() {
+        const cfg = state.config;
+
+        // Set the highest available ball based on the selected format.
+        let maxBall = 15;
+
+        if (cfg.format === '9-ball') {
+            maxBall = 9;
+        } else if (cfg.format === '10-ball') {
+            maxBall = 10;
+        }
+
+        // Build the available ball list and remove balls
+        // that are already configured as money balls.
+        const availableBalls = Array.from(
+            { length: maxBall },
+            (_, i) => i + 1
+        ).filter(n =>
+            !cfg.moneyBalls.some(mb => mb.ball === n)
+        );
+
+
+      return `
+        <div class="space-y-6 max-w-3xl mx-auto">
+          <div class="bg-gradient-to-br from-slatefelt-850 to-slatefelt-900 border border-slatefelt-700/80 rounded-2xl p-5 shadow-lg">
+            <h2 class="text-lg sm:text-xl font-extrabold text-white">New Ring Game Setup</h2>
+            <p class="text-xs sm:text-sm text-slate-400 mt-1">
+              Configure players, shooting rotation, money balls, and per-ball stakes before breaking Rack #1.
+            </p>
+          </div>
+
+
+          <section class="bg-slatefelt-900 border border-slatefelt-700/80 rounded-2xl p-5 shadow-lg space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-400">Step 1</span>
+                <h3 class="text-base font-bold text-white">Players & Shooting Rotation</h3>
+              </div>
+
+
+              <div class="flex items-center gap-1.5 bg-slatefelt-950 p-1 rounded-xl border border-slatefelt-700/80 overflow-x-auto whitespace-nowrap">
+                ${[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(n => `
+                  <button
+                    onclick="setPlayerCount(${n})"
+                    class="w-8 h-8 flex-none rounded-lg text-xs font-bold transition ${cfg.playerCount === n ? 'bg-emerald-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white hover:bg-slatefelt-800'}">
+                    ${n}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+
+
+            <div class="flex items-center justify-between bg-slatefelt-850/80 px-3.5 py-2.5 rounded-xl border border-slatefelt-700/60">
+              <span class="text-xs text-slate-300">Drag rows or use arrows to set order, or draw pills:</span>
+              <button
+                onclick="randomizePlayerOrder()"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition shadow">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                Randomize Order
+              </button>
+            </div>
+
+
+            <div class="space-y-2">
+              ${cfg.players.map((p, idx) => `
+                <div
+                  draggable="true"
+                  ondragstart="handleDragStart(event, ${idx})"
+                  ondragover="handleDragOver(event)"
+                  ondrop="handleDrop(event, ${idx})"
+                  class="flex items-center gap-2.5 bg-slatefelt-850 border border-slatefelt-700/70 rounded-xl p-2.5 transition hover:border-slate-500">
+                  <div class="cursor-grab text-slate-500 hover:text-slate-300 px-1" title="Drag to reorder">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg>
+                  </div>
+                  <div class="w-7 h-7 rounded-lg ${idx === 0 ? 'bg-emerald-500 text-slate-950' : 'bg-slatefelt-700 text-slate-200'} font-mono font-extrabold text-xs flex items-center justify-center shrink-0">
+                    ${idx === 0 ? '1st' : '#' + (idx + 1)}
+                  </div>
+                  <input
+                    type="text"
+                    value="${escapeHTML(p.name)}"
+                    oninput="updatePlayerName(${idx}, this.value)"
+                    placeholder="Player ${idx + 1}"
+                    class="flex-1 min-w-0 bg-slatefelt-950 border border-slatefelt-700 rounded-lg px-3 py-2 text-sm text-white font-medium"
+                  />
+                  <div class="flex items-center gap-1">
+                    <button
+                      onclick="movePlayerOrder(${idx}, -1)"
+                      ${idx === 0 ? 'disabled' : ''}
+                      class="p-2 rounded-lg bg-slatefelt-800 hover:bg-slatefelt-700 disabled:opacity-30 text-slate-300 transition"
+                      title="Move Up">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+                    </button>
+                    <button
+                      onclick="movePlayerOrder(${idx}, 1)"
+                      ${idx === cfg.players.length - 1 ? 'disabled' : ''}
+                      class="p-2 rounded-lg bg-slatefelt-800 hover:bg-slatefelt-700 disabled:opacity-30 text-slate-300 transition"
+                      title="Move Down">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </section>
+
+
+          <section class="bg-slatefelt-900 border border-slatefelt-700/80 rounded-2xl p-5 shadow-lg space-y-4">
+            <div>
+              <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-400">Step 2</span>
+              <h3 class="text-base font-bold text-white">Game Format & Money Balls</h3>
+            </div>
+
+
+            <div class="grid grid-cols-3 gap-2">
+              ${[
+                { id: '9-ball', label: '9-Ball Ring', sub: '5 & 9 Money' },
+                { id: '10-ball', label: '10-Ball Ring', sub: '5 & 10 Money' },
+                { id: 'custom', label: 'Custom Rules', sub: 'Any Money Balls' }
+              ].map(f => `
+                <button
+                  onclick="setGameFormat('${f.id}')"
+                  class="p-3 rounded-xl border text-left transition ${cfg.format === f.id ? 'bg-emerald-500/15 border-emerald-500 text-white' : 'bg-slatefelt-850 border-slatefelt-700/70 text-slate-400 hover:text-slate-200'}">
+                  <div class="font-bold text-xs sm:text-sm">${f.label}</div>
+                  <div class="text-[11px] opacity-75 mt-0.5">${f.sub}</div>
+                </button>
+              `).join('')}
+            </div>
+
+
+            <div class="space-y-2.5 pt-1">
+              <div class="flex items-center justify-between">
+                <label class="text-xs font-semibold text-slate-300">Active Money Balls (Paid by every other player)</label>
+              </div>
+
+
+              ${cfg.moneyBalls.map((mb, idx) => `
+                <div class="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 bg-slatefelt-850 border border-slatefelt-700/70 rounded-xl p-3">
+                  <div class="flex items-center gap-3">
+                    ${renderPoolBallHTML(mb.ball, 'w-10 h-10', 'w-5 h-5 text-xs')}
+                    <div>
+                      <div class="font-bold text-sm text-white">${mb.ball}-Ball</div>
+                      <div class="text-[11px] text-slate-400 mt-0.5">Money Ball</div>
+                    </div>
+                  </div>
+
+
+                  <div class="flex items-center gap-2 ml-auto">
+                    <div class="relative">
+                      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400 font-mono font-bold text-sm">$</span>
+                      <input
+                        type="number"
+                        step="0.25"
+                        min="0.25"
+                        value="${mb.value}"
+                        oninput="updateMoneyBallValue(${idx}, this.value)"
+                        class="w-24 bg-slatefelt-950 border border-slatefelt-700 rounded-lg pl-7 pr-2.5 py-2 text-right font-mono font-bold text-sm text-white"
+                      />
+                    </div>
+                    <button
+                      onclick="removeMoneyBall(${idx})"
+                      class="p-2 rounded-lg bg-slatefelt-800 hover:bg-rose-900/60 text-slate-400 hover:text-rose-300 transition"
+                      title="Remove Money Ball">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
+                  </div>
+                </div>
+              `).join('')}
+
+
+              ${availableBalls.length > 0 ? `
+                <div class="flex items-center gap-2 pt-1">
+                  <select id="add-ball-select" class="flex-1 bg-slatefelt-950 border border-slatefelt-700 rounded-xl px-3 py-2.5 text-sm text-slate-200">
+                    ${availableBalls.map(n => `<option value="${n}">${n} Ball</option>`).join('')}
+                  </select>
+                  <button
+                    onclick="addCustomMoneyBall(document.getElementById('add-ball-select').value)"
+                    class="px-4 py-2.5 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-600 text-white text-sm font-bold transition">
+                    + Add Ball
+                  </button>
+                </div>
+              ` : ''}
+            </div>
+          </section>
+
+
+          <section class="bg-slatefelt-900 border border-slatefelt-700/80 rounded-2xl p-5 shadow-lg space-y-4">
+            <div>
+              <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-400">Step 3</span>
+              <h3 class="text-base font-bold text-white">Bankroll Tracking Mode</h3>
+            </div>
+
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                onclick="toggleBuyIn(false)"
+                class="p-3.5 rounded-xl border text-left transition ${!cfg.useBuyIn ? 'bg-emerald-500/15 border-emerald-500 text-white' : 'bg-slatefelt-850 border-slatefelt-700/70 text-slate-400 hover:text-slate-200'}">
+                <div class="font-bold text-sm">Open Running Tab ($0 Start)</div>
+                <p class="text-xs opacity-80 mt-1">Track pure +/- net winnings continuously with no elimination.</p>
+              </button>
+
+
+              <button
+                onclick="toggleBuyIn(true)"
+                class="p-3.5 rounded-xl border text-left transition ${cfg.useBuyIn ? 'bg-emerald-500/15 border-emerald-500 text-white' : 'bg-slatefelt-850 border-slatefelt-700/70 text-slate-400 hover:text-slate-200'}">
+                <div class="font-bold text-sm">Starting Buy-In Stack (Knockout)</div>
+                <p class="text-xs opacity-80 mt-1">Everyone buys in for a fixed stack; players are eliminated at $0.</p>
+              </button>
+            </div>
+
+
+            ${cfg.useBuyIn ? `
+              <div class="flex items-center justify-between bg-slatefelt-850 border border-slatefelt-700/70 rounded-xl p-3.5">
+                <label class="text-sm font-semibold text-slate-200">Starting Stack per Player</label>
+                <div class="relative">
+                  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400 font-mono font-bold text-sm">$</span>
+                  <input
+                    type="number"
+                    min="1"
+                    step="5"
+                    value="${cfg.buyInAmount}"
+                    oninput="updateBuyInAmount(this.value)"
+                    class="w-28 bg-slatefelt-950 border border-slatefelt-700 rounded-lg pl-7 pr-3 py-2 text-right font-mono font-bold text-sm text-white"
+                  />
+                </div>
+              </div>
+            ` : ''}
+          </section>
+
+
+          <button
+            id="start-match-btn"
+            type="button"
+            onclick="startMatch()"
+            class="w-full py-4 px-6 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-base sm:text-lg tracking-tight shadow-xl transition transform active:scale-[0.99] cursor-pointer">
+            Break Rack #1 & Start Ring Game &rarr;
+          </button>
+        </div>
+      `;
+    }
+
+
+    /**
+     * RENDER LIVE GAME VIEW
+     */
+    function renderLiveView() {
+      const g = state.game;
+      const activeIndices = getActivePlayerIndices();
+      const shooterIdx = g.currentShooterIndex;
+      const shooter = g.players[shooterIdx];
+      const onDeckIdx = getNextActiveIndex(shooterIdx);
+      const onDeckPlayer = g.players[onDeckIdx];
+      const otherActiveCount = Math.max(0, activeIndices.length - 1);
+      const currentRack = getCurrentRack();
+      const pocketedInCurrentRack = currentRack ? currentRack.pocketedBalls : [];
+      const remainingBallsCount = Math.max(0, g.moneyBalls.length - pocketedInCurrentRack.length);
+
+
+      const simplified = getSimplifiedSettlements();
+      const pairwise = getPairwiseNetDebts();
+
+
+      return `
+        <div class="space-y-5">
+          <div class="flex flex-wrap items-center justify-between gap-3 bg-slatefelt-900 border border-slatefelt-700/80 rounded-2xl px-4 py-3 shadow">
+            <div class="flex items-center gap-2.5">
+              <button
+                onclick="switchTab('racks')"
+                class="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-400 font-mono font-extrabold text-sm transition"
+                title="View Racks & Stats">
+                RACK #${g.rackNumber}
+              </button>
+              <div class="text-xs sm:text-sm text-slate-300">
+                <span class="font-bold text-white uppercase">${escapeHTML(state.config.format)}</span>
+                <span class="mx-1.5 text-slate-600">&bull;</span>
+                <span>${pocketedInCurrentRack.length}/${g.moneyBalls.length} Balls Made</span>
+              </div>
+            </div>
+
+
+            <div class="flex items-center bg-slatefelt-950 p-1 rounded-xl border border-slatefelt-700/80 w-full sm:w-auto overflow-x-auto">
+              <button
+                onclick="switchTab('table')"
+                class="flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap ${activeTab === 'table' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400 hover:text-white'}">
+                Live Table
+              </button>
+              <button
+                onclick="switchTab('racks')"
+                class="flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap ${activeTab === 'racks' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400 hover:text-white'}">
+                Racks & Stats (${g.racks.length})
+              </button>
+              <button
+                onclick="switchTab('ledger')"
+                class="flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap ${activeTab === 'ledger' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400 hover:text-white'}">
+                Balances
+              </button>
+              <button
+                onclick="switchTab('history')"
+                class="flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap ${activeTab === 'history' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400 hover:text-white'}">
+                Log (${g.history.length})
+              </button>
+            </div>
+          </div>
+
+
+          ${activeTab === 'table' ? `
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+              <div class="lg:col-span-7 space-y-5">
+                <div class="bg-gradient-to-br from-slatefelt-850 via-slatefelt-900 to-slatefelt-950 border-2 border-emerald-500/70 rounded-2xl p-5 shadow-xl relative overflow-hidden">
+                  <div class="flex items-start justify-between gap-4">
+                    <div>
+                      <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-[11px] font-bold uppercase tracking-wider">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                        At The Table
+                      </div>
+                      <h2 class="text-2xl sm:text-3xl font-extrabold text-white mt-2 tracking-tight">
+                        ${escapeHTML(shooter.name)}
+                      </h2>
+                      <p class="text-xs sm:text-sm text-slate-400 mt-1">
+                        On Deck: <span class="font-bold text-blue-400">${escapeHTML(onDeckPlayer.name)}</span>
+                      </p>
+                    </div>
+
+
+                    <div class="text-right">
+                      <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
+                        ${g.useBuyIn ? 'Current Stack' : 'Net Balance'}
+                      </div>
+                      ${(() => {
+                        const net = getPlayerNetBalance(shooter.id);
+                        const displayVal = g.useBuyIn ? (g.buyInAmount + net) : net;
+                        const color = net > 0 ? 'text-emerald-400' : (net < 0 ? 'text-rose-400' : 'text-white');
+                        return `<div class="text-2xl font-mono font-extrabold ${color} mt-0.5">${formatMoney(displayVal, !g.useBuyIn)}</div>`;
+                      })()}
+                    </div>
+                  </div>
+
+
+                  <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-5 pt-4 border-t border-slatefelt-700/70">
+                    <button
+                      onclick="nextShooter()"
+                      class="col-span-2 sm:col-span-1 py-3 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-lg transition active:scale-[0.98]">
+                      <span>Next Shooter</span>
+                      <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                    </button>
+
+
+                    <button
+                      onclick="passShotBack()"
+                      ${!g.canPassBack ? 'disabled' : ''}
+                      class="py-3 px-2.5 rounded-xl bg-slatefelt-800 hover:bg-amber-600/20 hover:border-amber-500/50 hover:text-amber-300 disabled:opacity-35 disabled:pointer-events-none border border-slatefelt-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition"
+                      title="Pass shot back if incoming player calls a safety">
+                      <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                      <span>Pass Back</span>
+                    </button>
+
+
+                    <button
+                      onclick="undoLastAction()"
+                      ${g.snapshots.length === 0 ? 'disabled' : ''}
+                      class="py-3 px-2.5 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 disabled:opacity-35 disabled:pointer-events-none border border-slatefelt-700 text-slate-300 font-bold text-xs flex items-center justify-center gap-1.5 transition">
+                      <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z"/></svg>
+                      <span>Undo</span>
+                    </button>
+
+
+                    <button
+                      onclick="openNextRackModal()"
+                      class="col-span-2 sm:col-span-1 py-3 px-2.5 rounded-xl bg-slatefelt-800 hover:bg-emerald-600/25 border border-emerald-500/40 text-emerald-300 font-bold text-xs flex items-center justify-center gap-1.5 transition"
+                      title="Re-rack and advance to next rack">
+                      <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                      <span>Next Rack</span>
+                    </button>
+                  </div>
+                </div>
+
+
+                <div class="bg-slatefelt-900 border border-slatefelt-700/80 rounded-2xl p-5 shadow-lg">
+                  <div class="flex flex-wrap items-center justify-between gap-2 mb-3.5">
+                    <div>
+                      <h3 class="text-sm font-extrabold uppercase tracking-wider text-white">Rack #${g.rackNumber} Money Balls</h3>
+                      <p class="text-xs text-slate-400">
+                        Play continues until all money balls are made (<span class="text-emerald-400 font-semibold">${remainingBallsCount} remaining</span>)
+                      </p>
+                    </div>
+                  </div>
+
+
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    ${g.moneyBalls.map(mb => {
+                      const pocketRecord = pocketedInCurrentRack.find(pb => pb.ball === mb.ball);
+                      const isPocketed = Boolean(pocketRecord);
+                      const pocketShooter = isPocketed ? getPlayerById(pocketRecord.shooterId) : null;
+                      const potTotal = mb.value * otherActiveCount;
+
+
+                      if (isPocketed) {
+                        return `
+                          <div class="relative flex items-center justify-between p-4 rounded-2xl bg-slatefelt-950/80 border border-slatefelt-800 opacity-75 select-none">
+                            <div class="flex items-center gap-3.5">
+                              <div class="opacity-50 grayscale">
+                                ${renderPoolBallHTML(mb.ball, 'w-12 h-12', 'w-6 h-6 text-sm')}
+                              </div>
+                              <div>
+                                <div class="font-extrabold text-base text-slate-400 line-through">
+                                  ${mb.ball}-Ball
+                                </div>
+                                <div class="text-xs text-emerald-400 font-semibold mt-0.5 flex items-center gap-1">
+                                  <span>✓ Made by ${escapeHTML(pocketShooter ? pocketShooter.name : 'Player')}</span>
+                                </div>
+                              </div>
+                            </div>
+
+
+                            <div class="text-right">
+                              <span class="inline-block px-2 py-1 rounded-lg bg-slatefelt-850 border border-slatefelt-700 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                Pocketed
+                              </span>
+                            </div>
+                          </div>
+                        `;
+                      }
+
+
+                      return `
+                        <button
+                          onclick='scoreMoneyBall(${JSON.stringify(mb)})'
+                          class="relative flex items-center justify-between p-4 rounded-2xl bg-slatefelt-850 hover:bg-slatefelt-800 border-2 border-slatefelt-700 hover:border-emerald-500 transition transform active:scale-[0.98] shadow-md text-left">
+                          <div class="flex items-center gap-3.5">
+                            ${renderPoolBallHTML(mb.ball, 'w-12 h-12', 'w-6 h-6 text-sm')}
+                            <div>
+                              <div class="font-extrabold text-base text-white">
+                                ${mb.ball}-Ball
+                              </div>
+                              <div class="text-xs text-slate-400 mt-0.5">
+                                ${formatMoney(mb.value)} / player
+                              </div>
+                            </div>
+                          </div>
+
+
+                          <div class="text-right">
+                            <div class="font-mono font-extrabold text-lg text-emerald-400 transition-transform">
+                              +${formatMoney(potTotal)}
+                            </div>
+                            <div class="text-[10px] text-slate-400 uppercase font-semibold">Collect</div>
+                          </div>
+                        </button>
+                      `;
+                    }).join('')}
+                  </div>
+                </div>
+              </div>
+
+
+              <div class="lg:col-span-5 space-y-5">
+                <div class="bg-slatefelt-900 border border-slatefelt-700/80 rounded-2xl p-5 shadow-lg">
+                  <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-extrabold uppercase tracking-wider text-white">Rotation & Standings</h3>
+                    <span class="text-[11px] text-slate-400">${g.useBuyIn ? `Buy-in: ${formatMoney(g.buyInAmount)}` : 'Net +/-'}</span>
+                  </div>
+
+
+                  <div class="space-y-2">
+                    ${g.players.map((p, idx) => {
+                      const isShooter = idx === shooterIdx;
+                      const isOnDeck = idx === onDeckIdx && !p.eliminated;
+                      const net = getPlayerNetBalance(p.id);
+                      const stack = g.buyInAmount + net;
+                      const displayVal = g.useBuyIn ? stack : net;
+                      const valColor = net > 0 ? 'text-emerald-400' : (net < 0 ? 'text-rose-400' : 'text-slate-300');
+
+
+                      return `
+                        <div class="flex items-center justify-between p-3 rounded-xl border transition ${
+                          p.eliminated
+                            ? 'bg-slatefelt-950/60 border-slatefelt-800 opacity-50'
+                            : isShooter
+                              ? 'bg-emerald-950/35 border-emerald-500 active-shooter-ring'
+                              : isOnDeck
+                                ? 'bg-blue-950/20 border-blue-500/40'
+                                : 'bg-slatefelt-850 border-slatefelt-700/60'
+                        }">
+                          <div class="flex items-center gap-3 min-w-0">
+                            <span class="w-6 h-6 rounded-lg font-mono text-xs font-extrabold flex items-center justify-center shrink-0 ${
+                              isShooter ? 'bg-emerald-500 text-slate-950' : 'bg-slatefelt-700 text-slate-300'
+                            }">
+                              ${idx + 1}
+                            </span>
+                            <div class="truncate">
+                              <div class="font-bold text-sm text-white truncate flex items-center gap-2">
+                                <span>${escapeHTML(p.name)}</span>
+                                ${isShooter ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500 text-slate-950 font-extrabold uppercase">Shooting</span>' : ''}
+                                ${isOnDeck ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/40 font-bold uppercase">On Deck</span>' : ''}
+                                ${p.eliminated ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold uppercase">Busted</span>' : ''}
+                              </div>
+                              ${g.useBuyIn ? `<div class="text-[11px] text-slate-400 font-mono">Net: ${formatMoney(net, true)}</div>` : ''}
+                            </div>
+                          </div>
+
+
+                          <div class="font-mono font-extrabold text-base ${valColor} pl-2">
+                            ${formatMoney(displayVal, !g.useBuyIn)}
+                          </div>
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
+                </div>
+
+
+                <div class="bg-slatefelt-900 border border-slatefelt-700/80 rounded-2xl p-5 shadow-lg">
+                  <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-extrabold uppercase tracking-wider text-white">Who Owes Whom</h3>
+                    <button onclick="switchTab('ledger')" class="text-xs font-semibold text-emerald-400 hover:underline">Full Breakdown &rarr;</button>
+                  </div>
+
+
+                  ${simplified.length === 0 ? `
+                    <p class="text-xs text-slate-400 py-2">All players are currently even ($0).</p>
+                  ` : `
+                    <div class="space-y-2">
+                      ${simplified.slice(0, 4).map(s => `
+                        <div class="flex items-center justify-between text-xs bg-slatefelt-850 px-3 py-2 rounded-lg border border-slatefelt-700/50">
+                          <div>
+                            <span class="font-bold text-rose-300">${escapeHTML(s.from.name)}</span>
+                            <span class="text-slate-400 mx-1">owes</span>
+                            <span class="font-bold text-emerald-300">${escapeHTML(s.to.name)}</span>
+                          </div>
+                          <span class="font-mono font-bold text-white">${formatMoney(s.amount)}</span>
+                        </div>
+                      `).join('')}
+                    </div>
+                  `}
+                </div>
+              </div>
+            </div>
+          ` : ''}
+
+
+          ${activeTab === 'racks' ? renderRacksAndStatsTab() : ''}
+
+
+          ${activeTab === 'ledger' ? `
+            <div class="max-w-3xl mx-auto space-y-5">
+              <div class="bg-slatefelt-900 border border-slatefelt-700/80 rounded-2xl p-5 shadow-lg">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                  <div>
+                    <h3 class="text-base font-extrabold text-white">Smart Settle-Up (Simplified Transfers)</h3>
+                    <p class="text-xs text-slate-400">Consolidates circular debts into the minimum number of payments.</p>
+                  </div>
+                  <button onclick="copySettlementSummary()" class="px-3 py-1.5 rounded-lg bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-600 text-xs font-bold text-slate-200">
+                    Copy Summary
+                  </button>
+                </div>
+
+
+                ${simplified.length === 0 ? `
+                  <div class="p-6 text-center bg-slatefelt-850 rounded-xl border border-slatefelt-700/60 text-sm text-slate-400">
+                    No debts recorded yet — everyone is square!
+                  </div>
+                ` : `
+                  <div class="space-y-2.5">
+                    ${simplified.map(s => `
+                      <div class="flex items-center justify-between bg-emerald-950/25 border border-emerald-500/35 px-4 py-3 rounded-xl">
+                        <div class="text-sm">
+                          <span class="font-bold text-rose-300">${escapeHTML(s.from.name)}</span>
+                          <span class="text-slate-400 mx-2">pays</span>
+                          <span class="font-bold text-emerald-300">${escapeHTML(s.to.name)}</span>
+                        </div>
+                        <span class="font-mono font-extrabold text-lg text-emerald-400">${formatMoney(s.amount)}</span>
+                      </div>
+                    `).join('')}
+                  </div>
+                `}
+              </div>
+
+
+              <div class="bg-slatefelt-900 border border-slatefelt-700/80 rounded-2xl p-5 shadow-lg">
+                <h3 class="text-base font-extrabold text-white mb-1">Direct Head-to-Head Net Debts</h3>
+                <p class="text-xs text-slate-400 mb-4">Exact net balance between every individual pair of players.</p>
+
+
+                ${pairwise.length === 0 ? `
+                  <p class="text-xs text-slate-400">No pairwise balances yet.</p>
+                ` : `
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    ${pairwise.map(d => `
+                      <div class="flex items-center justify-between bg-slatefelt-850 border border-slatefelt-700/60 px-3.5 py-2.5 rounded-xl text-sm">
+                        <div>
+                          <span class="font-semibold text-rose-300">${escapeHTML(d.from.name)}</span>
+                          <span class="text-slate-500 mx-1.5">&rarr;</span>
+                          <span class="font-semibold text-emerald-300">${escapeHTML(d.to.name)}</span>
+                        </div>
+                        <span class="font-mono font-bold text-white">${formatMoney(d.amount)}</span>
+                      </div>
+                    `).join('')}
+                  </div>
+                `}
+              </div>
+            </div>
+          ` : ''}
+
+
+          ${activeTab === 'history' ? `
+            <div class="max-w-3xl mx-auto bg-slatefelt-900 border border-slatefelt-700/80 rounded-2xl p-5 shadow-lg">
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <h3 class="text-base font-extrabold text-white">Rack & Shot History</h3>
+                  <p class="text-xs text-slate-400">Chronological log of all money balls, turns, and pass-backs.</p>
+                </div>
+                <button
+                  onclick="undoLastAction()"
+                  ${g.snapshots.length === 0 ? 'disabled' : ''}
+                  class="px-3.5 py-2 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 disabled:opacity-40 text-xs font-bold text-slate-200 border border-slatefelt-600">
+                  Undo Last
+                </button>
+              </div>
+
+
+              ${g.history.length === 0 ? `
+                <div class="p-8 text-center text-sm text-slate-400 bg-slatefelt-850 rounded-xl border border-slatefelt-700/60">
+                  No events logged yet in Rack #1.
+                </div>
+              ` : `
+                <div class="space-y-2.5 max-h-[60vh] overflow-y-auto pr-1">
+                  ${g.history.map(ev => {
+                    if (ev.type === 'money_ball') {
+                      return `
+                        <div class="flex items-center justify-between bg-slatefelt-850 border border-emerald-500/30 p-3 rounded-xl">
+                          <div class="flex items-center gap-3">
+                            ${renderPoolBallHTML(ev.ball, 'w-9 h-9', 'w-4 h-4 text-[11px]')}
+                            <div>
+                              <div class="text-sm font-bold text-white">
+                                ${escapeHTML(ev.shooterName)} pocketed the ${ev.ball}-Ball
+                              </div>
+                              <div class="text-[11px] text-slate-400">
+                                Rack #${ev.rack} &bull; ${ev.timestamp} &bull; Paid by ${ev.breakdown.map(b => `${escapeHTML(b.payerName)} (${formatMoney(b.amount)})`).join(', ')}
+                              </div>
+                            </div>
+                          </div>
+                          <div class="font-mono font-extrabold text-emerald-400 text-sm pl-2">
+                            +${formatMoney(ev.totalCollected)}
+                          </div>
+                        </div>
+                      `;
+                    }
+                    if (ev.type === 'new_rack') {
+                      return `
+                        <div class="flex items-center justify-between bg-amber-950/25 border border-amber-500/30 px-3.5 py-2.5 rounded-xl text-xs">
+                          <span class="font-bold text-amber-300">🎱 Rack #${ev.rack} Started — ${escapeHTML(ev.breakerName)} breaks</span>
+                          <span class="text-slate-400">${ev.timestamp}</span>
+                        </div>
+                      `;
+                    }
+                    if (ev.type === 'pass_back') {
+                      return `
+                        <div class="flex items-center justify-between bg-slatefelt-850/70 border border-slatefelt-700/60 px-3.5 py-2 rounded-xl text-xs">
+                          <span class="text-amber-300 font-medium">↩ ${escapeHTML(ev.fromName)} passed shot back to ${escapeHTML(ev.toName)} (Rack #${ev.rack})</span>
+                          <span class="text-slate-500">${ev.timestamp}</span>
+                        </div>
+                      `;
+                    }
+                    if (ev.type === 'rack_edit') {
+                      return `
+                        <div class="flex items-center justify-between bg-blue-950/25 border border-blue-500/30 px-3.5 py-2 rounded-xl text-xs">
+                          <span class="text-blue-300 font-medium">✎ ${escapeHTML(ev.description)}</span>
+                          <span class="text-slate-500">${ev.timestamp}</span>
+                        </div>
+                      `;
+                    }
+                    return `
+                      <div class="flex items-center justify-between bg-slatefelt-850/50 border border-slatefelt-800 px-3.5 py-2 rounded-xl text-xs">
+                        <span class="text-slate-400">Turn passed: ${escapeHTML(ev.fromName)} &rarr; <strong class="text-slate-200">${escapeHTML(ev.toName)}</strong> (Rack #${ev.rack})</span>
+                        <span class="text-slate-500">${ev.timestamp}</span>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              `}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+
+    /**
+     * RENDER RACKS & STATS TAB
+     */
+    function renderRacksAndStatsTab() {
+      const g = state.game;
+
+
+      const playerStats = g.players.map(p => {
+        const ballCounts = {};
+        g.moneyBalls.forEach(mb => { ballCounts[mb.ball] = 0; });
+        let totalBalls = 0;
+        let breaksCount = 0;
+
+
+        g.racks.forEach(r => {
+          if (r.breakerId === p.id) breaksCount += 1;
+          r.pocketedBalls.forEach(pb => {
+            if (pb.shooterId === p.id) {
+              totalBalls += 1;
+              ballCounts[pb.ball] = (ballCounts[pb.ball] || 0) + 1;
+            }
+          });
+        });
+
+
+        return {
+          player: p,
+          totalBalls,
+          ballCounts,
+          breaksCount,
+          net: getPlayerNetBalance(p.id)
+        };
+      });
+
+
+      const racksReversed = [...g.racks].reverse();
+
+
+      return `
+        <div class="max-w-4xl mx-auto space-y-6">
+          <div class="bg-slatefelt-900 border border-slatefelt-700/80 rounded-2xl p-5 shadow-lg">
+            <div class="flex items-center justify-between mb-3.5">
+              <div>
+                <h3 class="text-base font-extrabold text-white">Player Performance Stats</h3>
+                <p class="text-xs text-slate-400">Cumulative money balls pocketed, breaks, and net winnings across all ${g.racks.length} rack${g.racks.length === 1 ? '' : 's'}.</p>
+              </div>
+            </div>
+
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="border-b border-slatefelt-700 text-[11px] uppercase tracking-wider text-slate-400">
+                    <th class="py-2.5 pr-3">Player</th>
+                    <th class="py-2.5 px-2 text-center">Breaks</th>
+                    ${g.moneyBalls.map(mb => `
+                      <th class="py-2.5 px-2 text-center">${mb.ball}-Balls</th>
+                    `).join('')}
+                    <th class="py-2.5 px-2 text-center">Total Balls</th>
+                    <th class="py-2.5 pl-3 text-right">Net +/-</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slatefelt-800 text-sm">
+                  ${playerStats.map(st => {
+                    const netColor = st.net > 0 ? 'text-emerald-400' : (st.net < 0 ? 'text-rose-400' : 'text-slate-300');
+                    return `
+                      <tr>
+                        <td class="py-3 pr-3 font-bold text-white">${escapeHTML(st.player.name)}</td>
+                        <td class="py-3 px-2 text-center font-mono text-slate-300">${st.breaksCount}</td>
+                        ${g.moneyBalls.map(mb => `
+                          <td class="py-3 px-2 text-center font-mono text-slate-200">${st.ballCounts[mb.ball] || 0}</td>
+                        `).join('')}
+                        <td class="py-3 px-2 text-center font-mono font-bold text-emerald-400">${st.totalBalls}</td>
+                        <td class="py-3 pl-3 text-right font-mono font-extrabold ${netColor}">${formatMoney(st.net, true)}</td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="text-base font-extrabold text-white">Rack-by-Rack Breakdown</h3>
+                <p class="text-xs text-slate-400">Inspect what happened in any rack or click <strong>Edit Rack</strong> to fix mistakes.</p>
+              </div>
+            </div>
+
+
+            ${racksReversed.map(rack => {
+              const breaker = getPlayerById(rack.breakerId);
+              const rackTotalPot = rack.pocketedBalls.reduce((sum, pb) => sum + (pb.totalCollected || 0), 0);
+              const isCurrent = rack.rackNumber === g.rackNumber && !rack.completed;
+
+
+              return `
+                <div class="bg-slatefelt-900 border ${isCurrent ? 'border-emerald-500/60' : 'border-slatefelt-700/80'} rounded-2xl p-4 sm:p-5 shadow-lg">
+                  <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slatefelt-800">
+                    <div class="flex items-center gap-2.5">
+                      <span class="px-2.5 py-1 rounded-lg font-mono font-extrabold text-xs ${isCurrent ? 'bg-emerald-500 text-slate-950' : 'bg-slatefelt-800 text-slate-200'}">
+                        RACK #${rack.rackNumber}
+                      </span>
+                      ${isCurrent ? '<span class="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">In Progress</span>' : ''}
+                      <span class="text-xs text-slate-400">
+                        Breaker: <strong class="text-slate-200">${escapeHTML(breaker ? breaker.name : 'Unknown')}</strong>
+                      </span>
+                    </div>
+
+
+                    <div class="flex items-center gap-3">
+                      <span class="text-xs font-mono text-slate-300">
+                        Pot: <strong class="text-emerald-400">${formatMoney(rackTotalPot)}</strong>
+                      </span>
+                      <button
+                        onclick="openEditRackModal(${rack.rackNumber})"
+                        class="px-3 py-1.5 rounded-lg bg-slatefelt-800 hover:bg-blue-600/25 hover:border-blue-500/50 hover:text-blue-300 border border-slatefelt-700 text-xs font-bold text-slate-200 transition">
+                        ✎ Edit Rack
+                      </button>
+                    </div>
+                  </div>
+
+
+                  ${rack.pocketedBalls.length === 0 ? `
+                    <div class="pt-3 text-xs text-slate-500 italic">
+                      No money balls pocketed in this rack yet.
+                    </div>
+                  ` : `
+                    <div class="pt-3 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      ${rack.pocketedBalls.map(pb => {
+                        const shooter = getPlayerById(pb.shooterId);
+                        return `
+                          <div class="flex items-center justify-between bg-slatefelt-850 border border-slatefelt-700/60 rounded-xl p-3">
+                            <div class="flex items-center gap-3">
+                              ${renderPoolBallHTML(pb.ball, 'w-9 h-9', 'w-4 h-4 text-[11px]')}
+                              <div>
+                                <div class="text-sm font-bold text-white">
+                                  ${escapeHTML(shooter ? shooter.name : 'Unknown')}
+                                </div>
+                                <div class="text-[11px] text-slate-400">
+                                  Made ${pb.ball}-Ball (${formatMoney(pb.value)}/ea)
+                                </div>
+                              </div>
+                            </div>
+
+
+                            <div class="font-mono font-extrabold text-sm text-emerald-400">
+                              +${formatMoney(pb.totalCollected)}
+                            </div>
+                          </div>
+                        `;
+                      }).join('')}
+                    </div>
+                  `}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+
+    function switchTab(tab) {
+      activeTab = tab;
+      render();
+    }
+
+
+    /**
+     * MAIN RENDER CONTROLLER
+     */
+    function render() {
+      const root = document.getElementById('app-root');
+      const headerActions = document.getElementById('header-actions');
+      const subtitle = document.getElementById('header-subtitle');
+
+
+      if (state.view === 'live' && state.game) {
+        subtitle.textContent = `${state.config.format.toUpperCase()} • ${state.game.players.length} Players`;
+        headerActions.innerHTML = `
+          <button
+            onclick="openEndGameModal()"
+            class="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs transition shadow">
+            Settle Up
+          </button>
+          <button
+            onclick="confirmResetModal()"
+            class="px-3 py-1.5 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-700 text-slate-300 font-semibold text-xs transition">
+            New Game
+          </button>
+        `;
+        root.innerHTML = renderLiveView();
+      } else {
+        subtitle.textContent = 'Billiards Ring Game Tracker';
+        headerActions.innerHTML = '';
+        root.innerHTML = renderSetupView();
+
+
+        const startBtn = document.getElementById('start-match-btn');
+        if (startBtn) {
+          startBtn.onclick = null;
+          startBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            startMatch();
+          });
+        }
+      }
+    }
+
+
+    document.getElementById('modal-backdrop').addEventListener('click', (e) => {
+      if (e.target.id === 'modal-backdrop') {
+        closeModal();
+      }
+    });
+
+
+    // Initial Render
+    render();
+  </script>
+</body>
+</html>
