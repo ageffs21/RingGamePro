@@ -533,45 +533,42 @@
 </head>
 <body class="min-h-screen felt-surface flex flex-col">
 
-
   <!-- Top Navigation Bar -->
   <header class="sticky top-0 z-30 bg-slatefelt-900/95 backdrop-blur border-b border-slatefelt-700/80 px-4 py-3">
     <div class="max-w-5xl mx-auto flex items-center justify-between gap-2">
-      <div class="flex items-center gap-2.5 min-w-0">
-        <div class="pool-ball stripe w-8 h-8 text-xs" style="--ball-color: #eab308;">
-          <span class="pool-ball-number w-4 h-4 text-[10px]">9</span>
-        </div>
-        <div class="min-w-0">
-          <div class="flex items-center gap-2">
-            <h1 class="font-extrabold text-base sm:text-lg tracking-tight text-white leading-none truncate">
-              RingGame <span class="text-emerald-400">Pro</span>
-            </h1>
-            <span id="offline-status-badge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold tracking-wide shrink-0" title="100% Self-Contained Offline App & Local Storage Active">
-              <span id="offline-status-dot" class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-              <span id="offline-status-text">Offline Ready</span>
-            </span>
-          </div>
-          <p id="header-subtitle" class="text-[11px] text-slate-400 font-medium mt-0.5 truncate">Billiards Ring Game Tracker</p>
-        </div>
-      </div>
+        <div class="flex items-center gap-2.5 min-w-0">
+            <div class="pool-ball stripe w-8 h-8 text-xs" style="--ball-color: #eab308;">
+                <span class="pool-ball-number w-4 h-4 text-[10px]">9</span>
+            </div>
+            <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                    <h1 class="font-extrabold text-base sm:text-lg tracking-tight text-white leading-none truncate">
+                        RingGame <span class="text-emerald-400">Pro</span>
+                    </h1>
 
+                </div>
+                <p id="header-subtitle" class="text-[11px] text-slate-400 font-medium mt-0.5 truncate">Billiards Ring Game Tracker</p>
+            </div>
+        </div>
 
-      <div id="header-actions" class="flex items-center gap-2 shrink-0">
-        <!-- Dynamically populated based on view -->
-      </div>
+        <div id="header-actions" class="flex items-center gap-2 shrink-0">
+            <button type="button"
+                    onclick="openRulesModal()"
+                    class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-600 text-slate-200 hover:text-white text-xs font-bold transition">
+                <span class="text-emerald-400 text-sm font-black">?</span>
+                Rules
+            </button>
+        </div>
     </div>
   </header>
 
-
   <!-- Toast / Non-Blocking Notification Banner -->
   <div id="toast-container" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none flex flex-col items-center gap-2 w-full max-w-md px-4"></div>
-
 
   <!-- Main Content Container -->
   <main id="app-root" class="flex-1 max-w-5xl w-full mx-auto px-4 py-5 pb-24">
     <!-- Views rendered via JS -->
   </main>
-
 
   <!-- Modal Container -->
   <div id="modal-backdrop" class="hidden fixed inset-0 z-40 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
@@ -585,18 +582,13 @@
     /**
      * PWA BOOTSTRAP: Inline App Icon (SVG + Canvas PNG), Dynamic Manifest, & Offline Service Worker
      */
-  (function initOfflinePWA() {
-    const statusTextEl = document.getElementById('offline-status-text');
-
-    // Don't use the service worker while running locally in Visual Studio.
-    // This prevents cached files from hiding development changes.
+(function initOfflinePWA() {
+    // Disable service worker caching while developing locally.
     const isDevelopment =
         location.hostname === 'localhost' ||
         location.hostname === '127.0.0.1';
-
     if (isDevelopment) {
-
-        // Remove any service worker that may already be registered.
+        // Remove any previously registered service workers.
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.getRegistrations().then(registrations => {
                 registrations.forEach(registration => {
@@ -604,28 +596,36 @@
                 });
             });
         }
-
-        if (statusTextEl) {
-            statusTextEl.textContent = 'Development Mode';
-        }
-
+        // Let the normal app finish loading before showing the message.
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                showToast('Development Mode', 'info');
+            }, 500);
+        });
         return;
     }
-
-    // Production / phone version
+    // Published version
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker
                 .register('./service-worker.js')
                 .then(() => {
-                    if (statusTextEl) {
-                        statusTextEl.textContent = 'Offline Ready';
-                    }
+
+                    setTimeout(() => {
+                        showToast('Offline Ready', 'success');
+                    }, 500);
                 })
-                .catch(() => {
-                    if (statusTextEl) {
-                        statusTextEl.textContent = 'Online Only';
-                    }
+                .catch(error => {
+                    console.error(
+                        'Service worker registration failed:',
+                        error
+                    );
+                    setTimeout(() => {
+                        showToast(
+                            'Offline mode unavailable',
+                            'warning'
+                        );
+                    }, 500);
                 });
         });
     }
@@ -1492,6 +1492,271 @@
       document.getElementById('modal-backdrop').classList.add('hidden');
     }
 
+
+    function openRulesModal() {
+        openModal(`
+        <div class="p-5 sm:p-6">
+
+          <!-- Header -->
+          <div class="flex items-start justify-between gap-4 mb-5">
+            <div>
+              <div class="text-[11px] font-bold uppercase tracking-wider text-emerald-400 mb-1">
+                How to Play
+              </div>
+              <h2 class="text-xl font-extrabold text-white">
+                🎱 Ring Game Rules
+              </h2>
+            </div>
+
+            <button
+              onclick="closeModal()"
+              class="shrink-0 w-9 h-9 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-700 text-slate-300 hover:text-white font-bold transition"
+              aria-label="Close Rules"
+            >
+              ✕
+            </button>
+          </div>
+
+
+          <!-- Objective -->
+          <section class="mb-5">
+            <h3 class="text-sm font-bold text-emerald-400 mb-2">
+              Objective
+            </h3>
+
+            <p class="text-sm text-slate-300 leading-relaxed">
+              Ring Game is played in a fixed shooting rotation. Players earn
+              money by legally pocketing designated money balls. The game
+              continues until all designated money balls have been legally
+              pocketed.
+            </p>
+          </section>
+
+
+          <!-- Shooting Order -->
+          <section class="mb-5">
+            <h3 class="text-sm font-bold text-emerald-400 mb-2">
+              Shooting Order
+            </h3>
+
+            <ul class="space-y-2 text-sm text-slate-300 leading-relaxed list-disc pl-5">
+              <li>
+                Players shoot in the order established before the game begins.
+              </li>
+
+              <li>
+                After a player's turn ends, play moves to the next player
+                in the rotation.
+              </li>
+
+              <li>
+                In 9-Ball and 10-Ball, the lowest-numbered ball on the
+                table must be contacted first on a legal shot.
+              </li>
+            </ul>
+          </section>
+
+
+          <!-- Money Balls -->
+          <section class="mb-5">
+            <h3 class="text-sm font-bold text-amber-400 mb-2">
+              💰 Money Balls
+            </h3>
+
+            <ul class="space-y-2 text-sm text-slate-300 leading-relaxed list-disc pl-5">
+              <li>
+                <strong class="text-white">
+                  All money balls must be called ball and pocket.
+                </strong>
+              </li>
+
+              <li>
+                A money ball only counts when legally pocketed in the
+                called pocket.
+              </li>
+
+              <li>
+                Each money ball may have a different value.
+              </li>
+
+              <li>
+                When a player legally pockets a money ball, every other
+                active player owes that player the configured value.
+              </li>
+            </ul>
+
+            <div class="mt-3 rounded-xl bg-slatefelt-950 border border-slatefelt-700 p-3">
+              <div class="text-xs font-bold text-slate-200 mb-1">
+                Example
+              </div>
+
+              <p class="text-xs text-slate-400 leading-relaxed">
+                With four players and the 5 Ball worth $0.25, a player
+                who legally pockets the called 5 Ball collects $0.25
+                from each of the other three players, for a total of
+                <strong class="text-emerald-400">$0.75</strong>.
+              </p>
+            </div>
+          </section>
+
+
+          <!-- Break -->
+          <section class="mb-5">
+            <h3 class="text-sm font-bold text-emerald-400 mb-2">
+              💥 The Break
+            </h3>
+
+            <ul class="space-y-2 text-sm text-slate-300 leading-relaxed list-disc pl-5">
+              <li>
+                Money balls pocketed on the break do not count for
+                payment and are spotted.
+              </li>
+
+              <li>
+                <strong class="text-white">
+                  The breaker continues shooting only after a legal break
+                  in which a ball is pocketed.
+                </strong>
+              </li>
+
+              <li>
+                If the breaker continues, 9-Ball and 10-Ball play proceeds
+                using the lowest-numbered legal object ball.
+              </li>
+            </ul>
+          </section>
+
+
+          <!-- No Safeties -->
+          <section class="mb-5 rounded-xl bg-rose-950/30 border border-rose-500/30 p-4">
+            <h3 class="text-sm font-bold text-rose-300 mb-2">
+              🚫 No Intentional Safeties
+            </h3>
+
+            <p class="text-sm text-slate-200 leading-relaxed mb-3">
+              <strong>Intentional safety play is not allowed in Ring Game.</strong>
+            </p>
+
+            <ul class="space-y-2 text-sm text-slate-300 leading-relaxed list-disc pl-5">
+              <li>
+                Every shot must be a legitimate attempt to legally
+                pocket a ball.
+              </li>
+
+              <li>
+                A player may not intentionally play safe simply to leave
+                the incoming player a difficult shot.
+              </li>
+
+              <li>
+                If a genuine attempt to pocket a ball accidentally leaves
+                the incoming player safe, that is allowed.
+              </li>
+
+              <li>
+                When there is a question about intent, the other players
+                make the judgment call.
+              </li>
+
+              <li>
+                The standard is whether the shooter made a full,
+                legitimate attempt to legally pocket a ball rather than
+                intentionally playing a defensive shot.
+              </li>
+            </ul>
+          </section>
+
+
+          <!-- Table Scratch -->
+          <section class="mb-5">
+            <h3 class="text-sm font-bold text-amber-400 mb-2">
+              ⚠️ Table Scratch
+            </h3>
+
+            <p class="text-sm text-slate-300 leading-relaxed mb-2">
+              A table scratch occurs when the shooter fails to complete
+              a legal shot without pocketing the cue ball.
+            </p>
+
+            <ul class="space-y-2 text-sm text-slate-300 leading-relaxed list-disc pl-5">
+              <li>
+                The cue ball remains where it comes to rest.
+              </li>
+
+              <li>
+                The incoming player shoots the cue ball as-is.
+              </li>
+            </ul>
+          </section>
+
+
+          <!-- Cue Ball Scratch -->
+          <section class="mb-5">
+            <h3 class="text-sm font-bold text-amber-400 mb-2">
+              ⚪ Cue-Ball Scratch
+            </h3>
+
+            <ul class="space-y-2 text-sm text-slate-300 leading-relaxed list-disc pl-5">
+              <li>
+                When the cue ball is pocketed, the incoming player
+                shoots from the kitchen.
+              </li>
+
+              <li>
+                If the next legal object ball is also in the kitchen,
+                that ball is spotted.
+              </li>
+
+              <li>
+                The incoming player then proceeds with the legal shot.
+              </li>
+            </ul>
+          </section>
+
+
+          <!-- End Game -->
+          <section class="mb-5">
+            <h3 class="text-sm font-bold text-emerald-400 mb-2">
+              🏁 End of the Game
+            </h3>
+
+            <p class="text-sm text-slate-300 leading-relaxed">
+              Pocketing the 9 Ball or 10 Ball does not necessarily end
+              the Ring Game.
+            </p>
+
+            <p class="text-sm text-white font-bold leading-relaxed mt-2">
+              The game continues until every designated money ball has
+              been legally made.
+            </p>
+          </section>
+
+
+          <!-- Other Rules -->
+          <section class="mb-6">
+            <h3 class="text-sm font-bold text-emerald-400 mb-2">
+              Other Rules
+            </h3>
+
+            <p class="text-sm text-slate-300 leading-relaxed">
+              For legal hits, rail requirements, combinations, fouls,
+              and situations not specifically modified by these Ring
+              Game rules, normal BCA rules apply.
+            </p>
+          </section>
+
+
+          <!-- Close -->
+          <button
+            onclick="closeModal()"
+            class="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm transition shadow"
+          >
+            Got It
+          </button>
+
+        </div>
+      `);
+    }
 
     function openEndGameModal() {
       if (!state.game) return;
@@ -2838,41 +3103,67 @@
      * MAIN RENDER CONTROLLER
      */
     function render() {
-      const root = document.getElementById('app-root');
-      const headerActions = document.getElementById('header-actions');
-      const subtitle = document.getElementById('header-subtitle');
+        const root = document.getElementById('app-root');
+        const headerActions = document.getElementById('header-actions');
+        const subtitle = document.getElementById('header-subtitle');
 
+        // Rules button is available from every screen.
+        const rulesButton = `
+        <button
+          onclick="openRulesModal()"
+          class="px-3 py-1.5 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-700 text-slate-300 hover:text-white font-semibold text-xs transition"
+        >
+          <span class="text-emerald-400 font-black">?</span>
+          Rules
+        </button>
+      `;
 
-      if (state.view === 'live' && state.game) {
-        subtitle.textContent = `${state.config.format.toUpperCase()} • ${state.game.players.length} Players`;
-        headerActions.innerHTML = `
+        if (state.view === 'live' && state.game) {
+
+            subtitle.textContent =
+                `${state.config.format.toUpperCase()} • ${state.game.players.length} Players`;
+
+            headerActions.innerHTML = `
+          ${rulesButton}
+
           <button
             onclick="openEndGameModal()"
-            class="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs transition shadow">
+            class="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs transition shadow"
+          >
             Settle Up
           </button>
+
           <button
             onclick="confirmResetModal()"
-            class="px-3 py-1.5 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-700 text-slate-300 font-semibold text-xs transition">
+            class="px-3 py-1.5 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-700 text-slate-300 font-semibold text-xs transition"
+          >
             New Game
           </button>
         `;
-        root.innerHTML = renderLiveView();
-      } else {
-        subtitle.textContent = 'Billiards Ring Game Tracker';
-        headerActions.innerHTML = '';
-        root.innerHTML = renderSetupView();
 
+            root.innerHTML = renderLiveView();
 
-        const startBtn = document.getElementById('start-match-btn');
-        if (startBtn) {
-          startBtn.onclick = null;
-          startBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            startMatch();
-          });
+        } else {
+
+            subtitle.textContent = 'Billiards Ring Game Tracker';
+
+            headerActions.innerHTML = `
+          ${rulesButton}
+        `;
+
+            root.innerHTML = renderSetupView();
+
+            const startBtn = document.getElementById('start-match-btn');
+
+            if (startBtn) {
+                startBtn.onclick = null;
+
+                startBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    startMatch();
+                });
+            }
         }
-      }
     }
 
 
