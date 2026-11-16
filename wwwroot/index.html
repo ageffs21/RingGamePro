@@ -1,5 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
+<!-- Supabase JavaScript Client -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -13,1553 +15,1553 @@
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
     <link rel="manifest" href="manifest.json" />
     <style>
-            *, *::before, *::after {
-                box-sizing: border-box;
-                border-width: 0;
-                border-style: solid;
-                border-color: #263646;
-            }
+        *, *::before, *::after {
+            box-sizing: border-box;
+            border-width: 0;
+            border-style: solid;
+            border-color: #263646;
+        }
 
 
-            :root {
-                --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-                --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-            }
+        :root {
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
 
 
-            html, body {
-                margin: 0;
-                padding: 0;
-                font-family: var(--font-sans);
-                background-color: #0b1116;
-                color: #f1f5f9;
-                -webkit-tap-highlight-color: transparent;
-                -webkit-font-smoothing: antialiased;
-            }
+        html, body {
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-sans);
+            background-color: #0b1116;
+            color: #f1f5f9;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-font-smoothing: antialiased;
+        }
 
 
-            button, input, select, textarea {
-                font-family: inherit;
-                color: inherit;
-            }
+        button, input, select, textarea {
+            font-family: inherit;
+            color: inherit;
+        }
+
 
+        button {
+            cursor: pointer;
+            background: transparent;
+        }
 
-            button {
-                cursor: pointer;
-                background: transparent;
+
+            button:disabled {
+                cursor: not-allowed;
             }
 
 
-                button:disabled {
-                    cursor: not-allowed;
-                }
+        /* Core Layout & Utility Classes (100% Self-Contained, Zero CDN) */
+        .hidden {
+            display: none !important;
+        }
 
+        .block {
+            display: block;
+        }
 
-            /* Core Layout & Utility Classes (100% Self-Contained, Zero CDN) */
-            .hidden {
-                display: none !important;
-            }
+        .inline-block {
+            display: inline-block;
+        }
 
-            .block {
-                display: block;
-            }
+        .inline-flex {
+            display: inline-flex;
+        }
 
-            .inline-block {
-                display: inline-block;
-            }
+        .flex {
+            display: flex;
+        }
 
-            .inline-flex {
-                display: inline-flex;
-            }
+        .grid {
+            display: grid;
+        }
 
-            .flex {
-                display: flex;
-            }
+        .flex-col {
+            flex-direction: column;
+        }
 
-            .grid {
-                display: grid;
-            }
+        .flex-wrap {
+            flex-wrap: wrap;
+        }
 
-            .flex-col {
-                flex-direction: column;
-            }
+        .flex-1 {
+            flex: 1 1 0%;
+        }
 
-            .flex-wrap {
-                flex-wrap: wrap;
-            }
+        .shrink-0 {
+            flex-shrink: 0;
+        }
 
-            .flex-1 {
-                flex: 1 1 0%;
-            }
+        .items-start {
+            align-items: flex-start;
+        }
 
-            .shrink-0 {
-                flex-shrink: 0;
-            }
+        .items-center {
+            align-items: center;
+        }
 
-            .items-start {
-                align-items: flex-start;
-            }
+        .justify-center {
+            justify-content: center;
+        }
 
-            .items-center {
-                align-items: center;
-            }
+        .justify-between {
+            justify-content: space-between;
+        }
 
-            .justify-center {
-                justify-content: center;
-            }
+        .justify-end {
+            justify-content: flex-end;
+        }
+
+        .min-h-screen {
+            min-height: 100vh;
+        }
+
+        .min-w-0 {
+            min-width: 0;
+        }
+
+        .w-full {
+            width: 100%;
+        }
+
+        .w-2 {
+            width: 0.5rem;
+        }
+
+        .h-2 {
+            height: 0.5rem;
+        }
+
+        .w-3\.5 {
+            width: 0.875rem;
+        }
+
+        .h-3\.5 {
+            height: 0.875rem;
+        }
+
+        .w-4 {
+            width: 1rem;
+        }
 
-            .justify-between {
-                justify-content: space-between;
-            }
+        .h-4 {
+            height: 1rem;
+        }
 
-            .justify-end {
-                justify-content: flex-end;
-            }
+        .w-5 {
+            width: 1.25rem;
+        }
 
-            .min-h-screen {
-                min-height: 100vh;
-            }
+        .h-5 {
+            height: 1.25rem;
+        }
+
+        .w-6 {
+            width: 1.5rem;
+        }
+
+        .h-6 {
+            height: 1.5rem;
+        }
+
+        .w-7 {
+            width: 1.75rem;
+        }
+
+        .h-7 {
+            height: 1.75rem;
+        }
+
+        .w-8 {
+            width: 2rem;
+        }
+
+        .h-8 {
+            height: 2rem;
+        }
+
+        .w-9 {
+            width: 2.25rem;
+        }
+
+        .h-9 {
+            height: 2.25rem;
+        }
+
+        .w-10 {
+            width: 2.5rem;
+        }
+
+        .h-10 {
+            height: 2.5rem;
+        }
+
+        .w-12 {
+            width: 3rem;
+        }
+
+        .h-12 {
+            height: 3rem;
+        }
+
+        .w-24 {
+            width: 6rem;
+        }
+
+        .w-28 {
+            width: 7rem;
+        }
+
+        .max-w-md {
+            max-width: 28rem;
+        }
+
+        .max-w-lg {
+            max-width: 32rem;
+        }
+
+        .max-w-3xl {
+            max-width: 48rem;
+        }
+
+        .max-w-4xl {
+            max-width: 56rem;
+        }
+
+        .max-w-5xl {
+            max-width: 64rem;
+        }
 
-            .min-w-0 {
-                min-width: 0;
-            }
+        .max-h-\[60vh\] {
+            max-height: 60vh;
+        }
 
-            .w-full {
-                width: 100%;
-            }
+        .max-h-\[90vh\] {
+            max-height: 90vh;
+        }
 
-            .w-2 {
-                width: 0.5rem;
-            }
 
-            .h-2 {
-                height: 0.5rem;
-            }
+        .mx-auto {
+            margin-left: auto;
+            margin-right: auto;
+        }
 
-            .w-3\.5 {
-                width: 0.875rem;
-            }
+        .mx-1 {
+            margin-left: 0.25rem;
+            margin-right: 0.25rem;
+        }
+
+        .mx-1\.5 {
+            margin-left: 0.375rem;
+            margin-right: 0.375rem;
+        }
 
-            .h-3\.5 {
-                height: 0.875rem;
-            }
+        .mx-2 {
+            margin-left: 0.5rem;
+            margin-right: 0.5rem;
+        }
 
-            .w-4 {
-                width: 1rem;
-            }
+        .my-4 {
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+        }
 
-            .h-4 {
-                height: 1rem;
-            }
+        .mt-0\.5 {
+            margin-top: 0.125rem;
+        }
 
-            .w-5 {
-                width: 1.25rem;
-            }
+        .mt-1 {
+            margin-top: 0.25rem;
+        }
 
-            .h-5 {
-                height: 1.25rem;
-            }
+        .mt-1\.5 {
+            margin-top: 0.375rem;
+        }
 
-            .w-6 {
-                width: 1.5rem;
-            }
+        .mt-2 {
+            margin-top: 0.5rem;
+        }
+
+        .mt-2\.5 {
+            margin-top: 0.625rem;
+        }
+
+        .mt-4 {
+            margin-top: 1rem;
+        }
+
+        .mt-5 {
+            margin-top: 1.25rem;
+        }
+
+        .mt-6 {
+            margin-top: 1.5rem;
+        }
+
+        .mb-1 {
+            margin-bottom: 0.25rem;
+        }
+
+        .mb-1\.5 {
+            margin-bottom: 0.375rem;
+        }
+
+        .mb-2 {
+            margin-bottom: 0.5rem;
+        }
+
+        .mb-3 {
+            margin-bottom: 0.75rem;
+        }
+
+        .mb-3\.5 {
+            margin-bottom: 0.875rem;
+        }
+
+        .mb-4 {
+            margin-bottom: 1rem;
+        }
+
+        .mb-5 {
+            margin-bottom: 1.25rem;
+        }
+
+        .ml-auto {
+            margin-left: auto;
+        }
+
+
+        .p-1 {
+            padding: 0.25rem;
+        }
+
+        .p-2 {
+            padding: 0.5rem;
+        }
+
+        .p-2\.5 {
+            padding: 0.625rem;
+        }
+
+        .p-3 {
+            padding: 0.75rem;
+        }
+
+        .p-3\.5 {
+            padding: 0.875rem;
+        }
+
+        .p-4 {
+            padding: 1rem;
+        }
+
+        .p-5 {
+            padding: 1.25rem;
+        }
+
+        .p-6 {
+            padding: 1.5rem;
+        }
+
+        .p-8 {
+            padding: 2rem;
+        }
+
+        .px-1 {
+            padding-left: 0.25rem;
+            padding-right: 0.25rem;
+        }
+
+        .px-1\.5 {
+            padding-left: 0.375rem;
+            padding-right: 0.375rem;
+        }
+
+        .px-2 {
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+        }
+
+        .px-2\.5 {
+            padding-left: 0.625rem;
+            padding-right: 0.625rem;
+        }
+
+        .px-3 {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+        }
+
+        .px-3\.5 {
+            padding-left: 0.875rem;
+            padding-right: 0.875rem;
+        }
+
+        .px-4 {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        .px-6 {
+            padding-left: 1.5rem;
+            padding-right: 1.5rem;
+        }
+
+        .py-0\.5 {
+            padding-top: 0.125rem;
+            padding-bottom: 0.125rem;
+        }
+
+        .py-1 {
+            padding-top: 0.25rem;
+            padding-bottom: 0.25rem;
+        }
+
+        .py-1\.5 {
+            padding-top: 0.375rem;
+            padding-bottom: 0.375rem;
+        }
+
+        .py-2 {
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+
+        .py-2\.5 {
+            padding-top: 0.625rem;
+            padding-bottom: 0.625rem;
+        }
+
+        .py-3 {
+            padding-top: 0.75rem;
+            padding-bottom: 0.75rem;
+        }
+
+        .py-4 {
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+
+        .py-5 {
+            padding-top: 1.25rem;
+            padding-bottom: 1.25rem;
+        }
+
+        .pt-1 {
+            padding-top: 0.25rem;
+        }
+
+        .pt-2 {
+            padding-top: 0.5rem;
+        }
+
+        .pt-3 {
+            padding-top: 0.75rem;
+        }
+
+        .pt-4 {
+            padding-top: 1rem;
+        }
+
+        .pb-3 {
+            padding-bottom: 0.75rem;
+        }
+
+        .pb-4 {
+            padding-bottom: 1rem;
+        }
+
+        .pb-24 {
+            padding-bottom: 6rem;
+        }
+
+        .pl-2 {
+            padding-left: 0.5rem;
+        }
+
+        .pl-3 {
+            padding-left: 0.75rem;
+        }
+
+        .pl-7 {
+            padding-left: 1.75rem;
+        }
+
+        .pr-1 {
+            padding-right: 0.25rem;
+        }
+
+        .pr-2\.5 {
+            padding-right: 0.625rem;
+        }
+
+        .pr-3 {
+            padding-right: 0.75rem;
+        }
+
+
+        .gap-1 {
+            gap: 0.25rem;
+        }
+
+        .gap-1\.5 {
+            gap: 0.375rem;
+        }
+
+        .gap-2 {
+            gap: 0.5rem;
+        }
+
+        .gap-2\.5 {
+            gap: 0.625rem;
+        }
+
+        .gap-3 {
+            gap: 0.75rem;
+        }
+
+        .gap-3\.5 {
+            gap: 0.875rem;
+        }
+
+        .gap-4 {
+            gap: 1rem;
+        }
+
+        .gap-5 {
+            gap: 1.25rem;
+        }
+
+
+        .space-y-1\.5 > :not([hidden]) ~ :not([hidden]) {
+            margin-top: 0.375rem;
+        }
+
+        .space-y-2 > :not([hidden]) ~ :not([hidden]) {
+            margin-top: 0.5rem;
+        }
+
+        .space-y-2\.5 > :not([hidden]) ~ :not([hidden]) {
+            margin-top: 0.625rem;
+        }
 
-            .h-6 {
-                height: 1.5rem;
-            }
+        .space-y-3 > :not([hidden]) ~ :not([hidden]) {
+            margin-top: 0.75rem;
+        }
 
-            .w-7 {
-                width: 1.75rem;
-            }
+        .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+            margin-top: 1rem;
+        }
 
-            .h-7 {
-                height: 1.75rem;
-            }
+        .space-y-5 > :not([hidden]) ~ :not([hidden]) {
+            margin-top: 1.25rem;
+        }
 
-            .w-8 {
-                width: 2rem;
-            }
+        .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+            margin-top: 1.5rem;
+        }
 
-            .h-8 {
-                height: 2rem;
-            }
 
-            .w-9 {
-                width: 2.25rem;
-            }
+        .divide-y > :not([hidden]) ~ :not([hidden]) {
+            border-top-width: 1px;
+        }
 
-            .h-9 {
-                height: 2.25rem;
-            }
+        .divide-slatefelt-800 > :not([hidden]) ~ :not([hidden]) {
+            border-color: #1a2632;
+        }
 
-            .w-10 {
-                width: 2.5rem;
-            }
 
-            .h-10 {
-                height: 2.5rem;
-            }
+        .grid-cols-1 {
+            grid-template-columns: repeat(1, minmax(0, 1fr));
+        }
+
+        .grid-cols-2 {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .grid-cols-3 {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .col-span-2 {
+            grid-column: span 2 / span 2;
+        }
+
 
-            .w-12 {
-                width: 3rem;
-            }
+        .sticky {
+            position: sticky;
+        }
 
-            .h-12 {
-                height: 3rem;
-            }
+        .fixed {
+            position: fixed;
+        }
 
-            .w-24 {
-                width: 6rem;
-            }
+        .relative {
+            position: relative;
+        }
 
-            .w-28 {
-                width: 7rem;
-            }
+        .absolute {
+            position: absolute;
+        }
 
-            .max-w-md {
-                max-width: 28rem;
-            }
+        .inset-0 {
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+        }
 
-            .max-w-lg {
-                max-width: 32rem;
-            }
+        .top-0 {
+            top: 0;
+        }
 
-            .max-w-3xl {
-                max-width: 48rem;
-            }
+        .top-1\/2 {
+            top: 50%;
+        }
 
-            .max-w-4xl {
-                max-width: 56rem;
-            }
+        .bottom-4 {
+            bottom: 1rem;
+        }
 
-            .max-w-5xl {
-                max-width: 64rem;
-            }
+        .left-3 {
+            left: 0.75rem;
+        }
 
-            .max-h-\[60vh\] {
-                max-height: 60vh;
-            }
+        .left-1\/2 {
+            left: 50%;
+        }
 
-            .max-h-\[90vh\] {
-                max-height: 90vh;
-            }
+        .-translate-x-1\/2 {
+            transform: translateX(-50%);
+        }
 
+        .-translate-y-1\/2 {
+            transform: translateY(-50%);
+        }
 
-            .mx-auto {
-                margin-left: auto;
-                margin-right: auto;
-            }
+        .translate-y-2 {
+            transform: translateY(0.5rem);
+        }
 
-            .mx-1 {
-                margin-left: 0.25rem;
-                margin-right: 0.25rem;
-            }
 
-            .mx-1\.5 {
-                margin-left: 0.375rem;
-                margin-right: 0.375rem;
-            }
+        .z-30 {
+            z-index: 30;
+        }
 
-            .mx-2 {
-                margin-left: 0.5rem;
-                margin-right: 0.5rem;
-            }
+        .z-40 {
+            z-index: 40;
+        }
 
-            .my-4 {
-                margin-top: 1rem;
-                margin-bottom: 1rem;
-            }
+        .z-50 {
+            z-index: 50;
+        }
 
-            .mt-0\.5 {
-                margin-top: 0.125rem;
-            }
 
-            .mt-1 {
-                margin-top: 0.25rem;
-            }
+        .overflow-hidden {
+            overflow: hidden;
+        }
 
-            .mt-1\.5 {
-                margin-top: 0.375rem;
-            }
+        .overflow-x-auto {
+            overflow-x: auto;
+        }
 
-            .mt-2 {
-                margin-top: 0.5rem;
-            }
+        .overflow-y-auto {
+            overflow-y: auto;
+        }
 
-            .mt-2\.5 {
-                margin-top: 0.625rem;
-            }
+        .truncate {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
 
-            .mt-4 {
-                margin-top: 1rem;
-            }
+        .whitespace-nowrap {
+            white-space: nowrap;
+        }
 
-            .mt-5 {
-                margin-top: 1.25rem;
-            }
+        .select-none {
+            user-select: none;
+        }
 
-            .mt-6 {
-                margin-top: 1.5rem;
-            }
+        .pointer-events-none {
+            pointer-events: none;
+        }
 
-            .mb-1 {
-                margin-bottom: 0.25rem;
-            }
+        .cursor-pointer {
+            cursor: pointer;
+        }
 
-            .mb-1\.5 {
-                margin-bottom: 0.375rem;
-            }
+        .cursor-grab {
+            cursor: grab;
+        }
 
-            .mb-2 {
-                margin-bottom: 0.5rem;
-            }
 
-            .mb-3 {
-                margin-bottom: 0.75rem;
-            }
+        .rounded-lg {
+            border-radius: 0.5rem;
+        }
 
-            .mb-3\.5 {
-                margin-bottom: 0.875rem;
-            }
+        .rounded-xl {
+            border-radius: 0.75rem;
+        }
 
-            .mb-4 {
-                margin-bottom: 1rem;
-            }
+        .rounded-2xl {
+            border-radius: 1rem;
+        }
 
-            .mb-5 {
-                margin-bottom: 1.25rem;
-            }
+        .rounded-full {
+            border-radius: 9999px;
+        }
 
-            .ml-auto {
-                margin-left: auto;
-            }
 
+        .border {
+            border-width: 1px;
+        }
 
-            .p-1 {
-                padding: 0.25rem;
-            }
+        .border-2 {
+            border-width: 2px;
+        }
 
-            .p-2 {
-                padding: 0.5rem;
-            }
+        .border-t {
+            border-top-width: 1px;
+        }
+
+        .border-b {
+            border-bottom-width: 1px;
+        }
+
+
+        .border-slatefelt-600 {
+            border-color: #364b60;
+        }
+
+        .border-slatefelt-700 {
+            border-color: #263646;
+        }
+
+        .border-slatefelt-700\/50 {
+            border-color: rgba(38, 54, 70, 0.5);
+        }
+
+        .border-slatefelt-700\/60 {
+            border-color: rgba(38, 54, 70, 0.6);
+        }
+
+        .border-slatefelt-700\/70 {
+            border-color: rgba(38, 54, 70, 0.7);
+        }
+
+        .border-slatefelt-700\/80 {
+            border-color: rgba(38, 54, 70, 0.8);
+        }
+
+        .border-slatefelt-800 {
+            border-color: #1a2632;
+        }
+
+        .border-emerald-500 {
+            border-color: #10b981;
+        }
+
+        .border-emerald-500\/30 {
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .border-emerald-500\/35 {
+            border-color: rgba(16, 185, 129, 0.35);
+        }
+
+        .border-emerald-500\/40 {
+            border-color: rgba(16, 185, 129, 0.4);
+        }
+
+        .border-emerald-500\/60 {
+            border-color: rgba(16, 185, 129, 0.6);
+        }
+
+        .border-emerald-500\/70 {
+            border-color: rgba(16, 185, 129, 0.7);
+        }
+
+        .border-blue-500\/30 {
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .border-blue-500\/40 {
+            border-color: rgba(59, 130, 246, 0.4);
+        }
+
+        .border-amber-500\/30 {
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        .border-amber-500\/40 {
+            border-color: rgba(245, 158, 11, 0.4);
+        }
+
+        .border-amber-500\/60 {
+            border-color: rgba(245, 158, 11, 0.6);
+        }
+
+        .border-rose-500\/60 {
+            border-color: rgba(244, 63, 94, 0.6);
+        }
+
+
+        .bg-slatefelt-950 {
+            background-color: #090d11;
+        }
+
+        .bg-slatefelt-950\/60 {
+            background-color: rgba(9, 13, 17, 0.6);
+        }
+
+        .bg-slatefelt-950\/80 {
+            background-color: rgba(9, 13, 17, 0.8);
+        }
+
+        .bg-slatefelt-900 {
+            background-color: #0f161d;
+        }
+
+        .bg-slatefelt-900\/95 {
+            background-color: rgba(15, 22, 29, 0.95);
+        }
+
+        .bg-slatefelt-850 {
+            background-color: #141e27;
+        }
+
+        .bg-slatefelt-850\/50 {
+            background-color: rgba(20, 30, 39, 0.5);
+        }
+
+        .bg-slatefelt-850\/70 {
+            background-color: rgba(20, 30, 39, 0.7);
+        }
+
+        .bg-slatefelt-850\/80 {
+            background-color: rgba(20, 30, 39, 0.8);
+        }
+
+        .bg-slatefelt-800 {
+            background-color: #1a2632;
+        }
+
+        .bg-slatefelt-700 {
+            background-color: #263646;
+        }
+
+        .bg-emerald-500 {
+            background-color: #10b981;
+        }
+
+        .bg-emerald-400 {
+            background-color: #34d399;
+        }
+
+        .bg-emerald-500\/15 {
+            background-color: rgba(16, 185, 129, 0.15);
+        }
+
+        .bg-emerald-500\/20 {
+            background-color: rgba(16, 185, 129, 0.2);
+        }
+
+        .bg-emerald-950\/25 {
+            background-color: rgba(2, 44, 34, 0.35);
+        }
+
+        .bg-emerald-950\/30 {
+            background-color: rgba(2, 44, 34, 0.42);
+        }
+
+        .bg-emerald-950\/35 {
+            background-color: rgba(2, 44, 34, 0.5);
+        }
+
+        .bg-emerald-950\/95 {
+            background-color: rgba(2, 44, 34, 0.95);
+        }
+
+        .bg-blue-600 {
+            background-color: #2563eb;
+        }
+
+        .bg-blue-500\/20 {
+            background-color: rgba(59, 130, 246, 0.2);
+        }
+
+        .bg-blue-950\/20 {
+            background-color: rgba(23, 37, 84, 0.35);
+        }
+
+        .bg-blue-950\/25 {
+            background-color: rgba(23, 37, 84, 0.42);
+        }
+
+        .bg-amber-950\/25 {
+            background-color: rgba(69, 26, 3, 0.4);
+        }
+
+        .bg-amber-950\/35 {
+            background-color: rgba(69, 26, 3, 0.52);
+        }
+
+        .bg-amber-950\/95 {
+            background-color: rgba(69, 26, 3, 0.95);
+        }
+
+        .bg-rose-600 {
+            background-color: #e11d48;
+        }
+
+        .bg-rose-500\/20 {
+            background-color: rgba(244, 63, 94, 0.2);
+        }
+
+        .bg-rose-950\/95 {
+            background-color: rgba(76, 5, 25, 0.95);
+        }
+
+        .bg-black\/75 {
+            background-color: rgba(0, 0, 0, 0.78);
+        }
+
+
+        .bg-gradient-to-br {
+            background-image: linear-gradient(to bottom right, var(--tw-gradient-from), var(--tw-gradient-via, var(--tw-gradient-to)), var(--tw-gradient-to));
+        }
+
+        .from-slatefelt-850 {
+            --tw-gradient-from: #141e27;
+        }
+
+        .via-slatefelt-900 {
+            --tw-gradient-via: #0f161d;
+        }
+
+        .to-slatefelt-900 {
+            --tw-gradient-to: #0f161d;
+        }
+
+        .to-slatefelt-950 {
+            --tw-gradient-to: #090d11;
+        }
+
+
+        .font-mono {
+            font-family: var(--font-mono);
+        }
+
+        .font-medium {
+            font-weight: 500;
+        }
+
+        .font-semibold {
+            font-weight: 600;
+        }
+
+        .font-bold {
+            font-weight: 700;
+        }
+
+        .font-extrabold {
+            font-weight: 800;
+        }
+
+        .italic {
+            font-style: italic;
+        }
+
+        .uppercase {
+            text-transform: uppercase;
+        }
+
+        .line-through {
+            text-decoration: line-through;
+        }
+
+        .leading-none {
+            line-height: 1;
+        }
+
+        .tracking-tight {
+            letter-spacing: -0.025em;
+        }
+
+        .tracking-wider {
+            letter-spacing: 0.05em;
+        }
+
+        .text-left {
+            text-align: left;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+
+        .text-\[10px\] {
+            font-size: 10px;
+        }
+
+        .text-\[11px\] {
+            font-size: 11px;
+        }
+
+        .text-xs {
+            font-size: 0.75rem;
+            line-height: 1rem;
+        }
+
+        .text-sm {
+            font-size: 0.875rem;
+            line-height: 1.25rem;
+        }
+
+        .text-base {
+            font-size: 1rem;
+            line-height: 1.5rem;
+        }
+
+        .text-lg {
+            font-size: 1.125rem;
+            line-height: 1.75rem;
+        }
+
+        .text-xl {
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+        }
+
+        .text-2xl {
+            font-size: 1.5rem;
+            line-height: 2rem;
+        }
+
+
+        .text-white {
+            color: #ffffff;
+        }
+
+        .text-slate-950 {
+            color: #020617;
+        }
+
+        .text-slate-100 {
+            color: #f1f5f9;
+        }
+
+        .text-slate-200 {
+            color: #e2e8f0;
+        }
+
+        .text-slate-300 {
+            color: #cbd5e1;
+        }
+
+        .text-slate-400 {
+            color: #94a3b8;
+        }
+
+        .text-slate-500 {
+            color: #64748b;
+        }
+
+        .text-slate-600 {
+            color: #475569;
+        }
+
+        .text-emerald-100 {
+            color: #d1fae5;
+        }
+
+        .text-emerald-300 {
+            color: #6ee7b7;
+        }
+
+        .text-emerald-400 {
+            color: #34d399;
+        }
+
+        .text-blue-300 {
+            color: #93c5fd;
+        }
+
+        .text-blue-400 {
+            color: #60a5fa;
+        }
+
+        .text-amber-100 {
+            color: #fef3c7;
+        }
+
+        .text-amber-200 {
+            color: #fde68a;
+        }
+
+        .text-amber-300 {
+            color: #fcd34d;
+        }
+
+        .text-rose-100 {
+            color: #ffe4e6;
+        }
+
+        .text-rose-300 {
+            color: #fda4af;
+        }
+
+        .text-rose-400 {
+            color: #fb7185;
+        }
+
+
+        .opacity-0 {
+            opacity: 0;
+        }
+
+        .opacity-30 {
+            opacity: 0.3;
+        }
+
+        .opacity-35 {
+            opacity: 0.35;
+        }
+
+        .opacity-40 {
+            opacity: 0.4;
+        }
+
+        .opacity-50 {
+            opacity: 0.5;
+        }
+
+        .opacity-75 {
+            opacity: 0.75;
+        }
+
+        .opacity-80 {
+            opacity: 0.8;
+        }
+
+        .grayscale {
+            filter: grayscale(100%);
+        }
+
+
+        .shadow {
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.25);
+        }
+
+        .shadow-md {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+        }
+
+        .shadow-lg {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.45);
+        }
+
+        .shadow-xl {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+
+        .shadow-2xl {
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65);
+        }
+
+
+        .backdrop-blur {
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .backdrop-blur-sm {
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+
+        .transition {
+            transition: all 0.18s ease;
+        }
+
+        .transition-all {
+            transition: all 0.25s ease;
+        }
+
+        .transition-transform {
+            transition: transform 0.18s ease;
+        }
+
+        .duration-300 {
+            transition-duration: 300ms;
+        }
+
+        .transform {
+            transform: translateZ(0);
+        }
+
+
+        /* Hover & Active States */
+        .hover\:bg-emerald-400:hover:not(:disabled) {
+            background-color: #34d399;
+        }
+
+        .hover\:bg-emerald-500\/25:hover:not(:disabled) {
+            background-color: rgba(16, 185, 129, 0.25);
+        }
+
+        .hover\:bg-emerald-600\/25:hover:not(:disabled) {
+            background-color: rgba(5, 150, 105, 0.25);
+        }
+
+        .hover\:bg-blue-500:hover:not(:disabled) {
+            background-color: #3b82f6;
+        }
+
+        .hover\:bg-blue-600\/25:hover:not(:disabled) {
+            background-color: rgba(37, 99, 235, 0.25);
+        }
+
+        .hover\:bg-amber-600\/20:hover:not(:disabled) {
+            background-color: rgba(217, 119, 6, 0.2);
+        }
+
+        .hover\:bg-rose-500:hover:not(:disabled) {
+            background-color: #f43f5e;
+        }
+
+        .hover\:bg-rose-900\/60:hover:not(:disabled) {
+            background-color: rgba(136, 19, 55, 0.6);
+        }
+
+        .hover\:bg-slatefelt-700:hover:not(:disabled) {
+            background-color: #263646;
+        }
+
+        .hover\:bg-slatefelt-800:hover:not(:disabled) {
+            background-color: #1a2632;
+        }
+
+        .hover\:border-emerald-500:hover:not(:disabled) {
+            border-color: #10b981;
+        }
+
+        .hover\:border-blue-500\/50:hover:not(:disabled) {
+            border-color: rgba(59, 130, 246, 0.5);
+        }
+
+        .hover\:border-amber-500\/50:hover:not(:disabled) {
+            border-color: rgba(245, 158, 11, 0.5);
+        }
+
+        .hover\:border-slate-500:hover:not(:disabled) {
+            border-color: #64748b;
+        }
+
+        .hover\:text-white:hover:not(:disabled) {
+            color: #ffffff;
+        }
+
+        .hover\:text-slate-200:hover:not(:disabled) {
+            color: #e2e8f0;
+        }
+
+        .hover\:text-slate-300:hover:not(:disabled) {
+            color: #cbd5e1;
+        }
+
+        .hover\:text-blue-300:hover:not(:disabled) {
+            color: #93c5fd;
+        }
+
+        .hover\:text-amber-300:hover:not(:disabled) {
+            color: #fcd34d;
+        }
+
+        .hover\:text-rose-300:hover:not(:disabled) {
+            color: #fda4af;
+        }
+
+        .hover\:underline:hover {
+            text-decoration: underline;
+        }
+
+        .active\:scale-\[0\.98\]:active {
+            transform: scale(0.98);
+        }
+
+        .active\:scale-\[0\.99\]:active {
+            transform: scale(0.99);
+        }
+
+        .disabled\:opacity-30:disabled {
+            opacity: 0.3;
+        }
+
+        .disabled\:opacity-35:disabled {
+            opacity: 0.35;
+        }
+
+        .disabled\:opacity-40:disabled {
+            opacity: 0.4;
+        }
+
+        .disabled\:pointer-events-none:disabled {
+            pointer-events: none;
+        }
+
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #10b981;
+        }
+
+
+        table {
+            border-collapse: collapse;
+        }
+
+        .border-collapse {
+            border-collapse: collapse;
+        }
+
 
-            .p-2\.5 {
-                padding: 0.625rem;
+        /* Responsive Breakpoints */
+        @media (min-width: 640px) {
+            .sm\:flex-initial {
+                flex: 0 1 auto;
             }
 
-            .p-3 {
-                padding: 0.75rem;
+            .sm\:flex-row {
+                flex-direction: row;
             }
 
-            .p-3\.5 {
-                padding: 0.875rem;
+            .sm\:flex-nowrap {
+                flex-wrap: nowrap;
             }
 
-            .p-4 {
-                padding: 1rem;
+            .sm\:w-auto {
+                width: auto;
             }
 
-            .p-5 {
+            .sm\:p-5 {
                 padding: 1.25rem;
             }
 
-            .p-6 {
+            .sm\:p-6 {
                 padding: 1.5rem;
             }
 
-            .p-8 {
-                padding: 2rem;
-            }
-
-            .px-1 {
-                padding-left: 0.25rem;
-                padding-right: 0.25rem;
-            }
-
-            .px-1\.5 {
-                padding-left: 0.375rem;
-                padding-right: 0.375rem;
-            }
-
-            .px-2 {
-                padding-left: 0.5rem;
-                padding-right: 0.5rem;
-            }
-
-            .px-2\.5 {
-                padding-left: 0.625rem;
-                padding-right: 0.625rem;
-            }
-
-            .px-3 {
-                padding-left: 0.75rem;
-                padding-right: 0.75rem;
-            }
-
-            .px-3\.5 {
-                padding-left: 0.875rem;
-                padding-right: 0.875rem;
-            }
-
-            .px-4 {
-                padding-left: 1rem;
-                padding-right: 1rem;
-            }
-
-            .px-6 {
-                padding-left: 1.5rem;
-                padding-right: 1.5rem;
-            }
-
-            .py-0\.5 {
-                padding-top: 0.125rem;
-                padding-bottom: 0.125rem;
-            }
-
-            .py-1 {
-                padding-top: 0.25rem;
-                padding-bottom: 0.25rem;
-            }
-
-            .py-1\.5 {
-                padding-top: 0.375rem;
-                padding-bottom: 0.375rem;
-            }
-
-            .py-2 {
-                padding-top: 0.5rem;
-                padding-bottom: 0.5rem;
-            }
-
-            .py-2\.5 {
-                padding-top: 0.625rem;
-                padding-bottom: 0.625rem;
-            }
-
-            .py-3 {
-                padding-top: 0.75rem;
-                padding-bottom: 0.75rem;
-            }
-
-            .py-4 {
-                padding-top: 1rem;
-                padding-bottom: 1rem;
-            }
-
-            .py-5 {
-                padding-top: 1.25rem;
-                padding-bottom: 1.25rem;
-            }
-
-            .pt-1 {
-                padding-top: 0.25rem;
-            }
-
-            .pt-2 {
-                padding-top: 0.5rem;
-            }
-
-            .pt-3 {
-                padding-top: 0.75rem;
-            }
-
-            .pt-4 {
-                padding-top: 1rem;
-            }
-
-            .pb-3 {
-                padding-bottom: 0.75rem;
-            }
-
-            .pb-4 {
-                padding-bottom: 1rem;
-            }
-
-            .pb-24 {
-                padding-bottom: 6rem;
-            }
-
-            .pl-2 {
-                padding-left: 0.5rem;
-            }
-
-            .pl-3 {
-                padding-left: 0.75rem;
-            }
-
-            .pl-7 {
-                padding-left: 1.75rem;
-            }
-
-            .pr-1 {
-                padding-right: 0.25rem;
-            }
-
-            .pr-2\.5 {
-                padding-right: 0.625rem;
-            }
-
-            .pr-3 {
-                padding-right: 0.75rem;
-            }
-
-
-            .gap-1 {
-                gap: 0.25rem;
-            }
-
-            .gap-1\.5 {
-                gap: 0.375rem;
-            }
-
-            .gap-2 {
-                gap: 0.5rem;
-            }
-
-            .gap-2\.5 {
-                gap: 0.625rem;
-            }
-
-            .gap-3 {
-                gap: 0.75rem;
-            }
-
-            .gap-3\.5 {
-                gap: 0.875rem;
-            }
-
-            .gap-4 {
-                gap: 1rem;
-            }
-
-            .gap-5 {
-                gap: 1.25rem;
-            }
-
-
-            .space-y-1\.5 > :not([hidden]) ~ :not([hidden]) {
-                margin-top: 0.375rem;
-            }
-
-            .space-y-2 > :not([hidden]) ~ :not([hidden]) {
-                margin-top: 0.5rem;
-            }
-
-            .space-y-2\.5 > :not([hidden]) ~ :not([hidden]) {
-                margin-top: 0.625rem;
-            }
-
-            .space-y-3 > :not([hidden]) ~ :not([hidden]) {
-                margin-top: 0.75rem;
-            }
-
-            .space-y-4 > :not([hidden]) ~ :not([hidden]) {
-                margin-top: 1rem;
-            }
-
-            .space-y-5 > :not([hidden]) ~ :not([hidden]) {
-                margin-top: 1.25rem;
-            }
-
-            .space-y-6 > :not([hidden]) ~ :not([hidden]) {
-                margin-top: 1.5rem;
-            }
-
-
-            .divide-y > :not([hidden]) ~ :not([hidden]) {
-                border-top-width: 1px;
-            }
-
-            .divide-slatefelt-800 > :not([hidden]) ~ :not([hidden]) {
-                border-color: #1a2632;
-            }
-
-
-            .grid-cols-1 {
-                grid-template-columns: repeat(1, minmax(0, 1fr));
-            }
-
-            .grid-cols-2 {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-
-            .grid-cols-3 {
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-            }
-
-            .col-span-2 {
-                grid-column: span 2 / span 2;
-            }
-
-
-            .sticky {
-                position: sticky;
-            }
-
-            .fixed {
-                position: fixed;
-            }
-
-            .relative {
-                position: relative;
-            }
-
-            .absolute {
-                position: absolute;
-            }
-
-            .inset-0 {
-                top: 0;
-                right: 0;
-                bottom: 0;
-                left: 0;
-            }
-
-            .top-0 {
-                top: 0;
-            }
-
-            .top-1\/2 {
-                top: 50%;
-            }
-
-            .bottom-4 {
-                bottom: 1rem;
-            }
-
-            .left-3 {
-                left: 0.75rem;
-            }
-
-            .left-1\/2 {
-                left: 50%;
-            }
-
-            .-translate-x-1\/2 {
-                transform: translateX(-50%);
-            }
-
-            .-translate-y-1\/2 {
-                transform: translateY(-50%);
-            }
-
-            .translate-y-2 {
-                transform: translateY(0.5rem);
-            }
-
-
-            .z-30 {
-                z-index: 30;
-            }
-
-            .z-40 {
-                z-index: 40;
-            }
-
-            .z-50 {
-                z-index: 50;
-            }
-
-
-            .overflow-hidden {
-                overflow: hidden;
-            }
-
-            .overflow-x-auto {
-                overflow-x: auto;
-            }
-
-            .overflow-y-auto {
-                overflow-y: auto;
-            }
-
-            .truncate {
-                overflow: hidden;
-                text-overflow: ellipsis;
-                white-space: nowrap;
-            }
-
-            .whitespace-nowrap {
-                white-space: nowrap;
-            }
-
-            .select-none {
-                user-select: none;
-            }
-
-            .pointer-events-none {
-                pointer-events: none;
-            }
-
-            .cursor-pointer {
-                cursor: pointer;
-            }
-
-            .cursor-grab {
-                cursor: grab;
-            }
-
-
-            .rounded-lg {
-                border-radius: 0.5rem;
-            }
-
-            .rounded-xl {
-                border-radius: 0.75rem;
-            }
-
-            .rounded-2xl {
-                border-radius: 1rem;
-            }
-
-            .rounded-full {
-                border-radius: 9999px;
-            }
-
-
-            .border {
-                border-width: 1px;
-            }
-
-            .border-2 {
-                border-width: 2px;
-            }
-
-            .border-t {
-                border-top-width: 1px;
-            }
-
-            .border-b {
-                border-bottom-width: 1px;
-            }
-
-
-            .border-slatefelt-600 {
-                border-color: #364b60;
-            }
-
-            .border-slatefelt-700 {
-                border-color: #263646;
-            }
-
-            .border-slatefelt-700\/50 {
-                border-color: rgba(38, 54, 70, 0.5);
-            }
-
-            .border-slatefelt-700\/60 {
-                border-color: rgba(38, 54, 70, 0.6);
-            }
-
-            .border-slatefelt-700\/70 {
-                border-color: rgba(38, 54, 70, 0.7);
-            }
-
-            .border-slatefelt-700\/80 {
-                border-color: rgba(38, 54, 70, 0.8);
-            }
-
-            .border-slatefelt-800 {
-                border-color: #1a2632;
-            }
-
-            .border-emerald-500 {
-                border-color: #10b981;
-            }
-
-            .border-emerald-500\/30 {
-                border-color: rgba(16, 185, 129, 0.3);
-            }
-
-            .border-emerald-500\/35 {
-                border-color: rgba(16, 185, 129, 0.35);
-            }
-
-            .border-emerald-500\/40 {
-                border-color: rgba(16, 185, 129, 0.4);
-            }
-
-            .border-emerald-500\/60 {
-                border-color: rgba(16, 185, 129, 0.6);
-            }
-
-            .border-emerald-500\/70 {
-                border-color: rgba(16, 185, 129, 0.7);
-            }
-
-            .border-blue-500\/30 {
-                border-color: rgba(59, 130, 246, 0.3);
-            }
-
-            .border-blue-500\/40 {
-                border-color: rgba(59, 130, 246, 0.4);
-            }
-
-            .border-amber-500\/30 {
-                border-color: rgba(245, 158, 11, 0.3);
-            }
-
-            .border-amber-500\/40 {
-                border-color: rgba(245, 158, 11, 0.4);
-            }
-
-            .border-amber-500\/60 {
-                border-color: rgba(245, 158, 11, 0.6);
-            }
-
-            .border-rose-500\/60 {
-                border-color: rgba(244, 63, 94, 0.6);
-            }
-
-
-            .bg-slatefelt-950 {
-                background-color: #090d11;
-            }
-
-            .bg-slatefelt-950\/60 {
-                background-color: rgba(9, 13, 17, 0.6);
-            }
-
-            .bg-slatefelt-950\/80 {
-                background-color: rgba(9, 13, 17, 0.8);
-            }
-
-            .bg-slatefelt-900 {
-                background-color: #0f161d;
-            }
-
-            .bg-slatefelt-900\/95 {
-                background-color: rgba(15, 22, 29, 0.95);
-            }
-
-            .bg-slatefelt-850 {
-                background-color: #141e27;
-            }
-
-            .bg-slatefelt-850\/50 {
-                background-color: rgba(20, 30, 39, 0.5);
-            }
-
-            .bg-slatefelt-850\/70 {
-                background-color: rgba(20, 30, 39, 0.7);
-            }
-
-            .bg-slatefelt-850\/80 {
-                background-color: rgba(20, 30, 39, 0.8);
-            }
-
-            .bg-slatefelt-800 {
-                background-color: #1a2632;
-            }
-
-            .bg-slatefelt-700 {
-                background-color: #263646;
-            }
-
-            .bg-emerald-500 {
-                background-color: #10b981;
-            }
-
-            .bg-emerald-400 {
-                background-color: #34d399;
-            }
-
-            .bg-emerald-500\/15 {
-                background-color: rgba(16, 185, 129, 0.15);
-            }
-
-            .bg-emerald-500\/20 {
-                background-color: rgba(16, 185, 129, 0.2);
-            }
-
-            .bg-emerald-950\/25 {
-                background-color: rgba(2, 44, 34, 0.35);
-            }
-
-            .bg-emerald-950\/30 {
-                background-color: rgba(2, 44, 34, 0.42);
-            }
-
-            .bg-emerald-950\/35 {
-                background-color: rgba(2, 44, 34, 0.5);
-            }
-
-            .bg-emerald-950\/95 {
-                background-color: rgba(2, 44, 34, 0.95);
-            }
-
-            .bg-blue-600 {
-                background-color: #2563eb;
-            }
-
-            .bg-blue-500\/20 {
-                background-color: rgba(59, 130, 246, 0.2);
-            }
-
-            .bg-blue-950\/20 {
-                background-color: rgba(23, 37, 84, 0.35);
-            }
-
-            .bg-blue-950\/25 {
-                background-color: rgba(23, 37, 84, 0.42);
-            }
-
-            .bg-amber-950\/25 {
-                background-color: rgba(69, 26, 3, 0.4);
-            }
-
-            .bg-amber-950\/35 {
-                background-color: rgba(69, 26, 3, 0.52);
-            }
-
-            .bg-amber-950\/95 {
-                background-color: rgba(69, 26, 3, 0.95);
-            }
-
-            .bg-rose-600 {
-                background-color: #e11d48;
-            }
-
-            .bg-rose-500\/20 {
-                background-color: rgba(244, 63, 94, 0.2);
-            }
-
-            .bg-rose-950\/95 {
-                background-color: rgba(76, 5, 25, 0.95);
-            }
-
-            .bg-black\/75 {
-                background-color: rgba(0, 0, 0, 0.78);
-            }
-
-
-            .bg-gradient-to-br {
-                background-image: linear-gradient(to bottom right, var(--tw-gradient-from), var(--tw-gradient-via, var(--tw-gradient-to)), var(--tw-gradient-to));
-            }
-
-            .from-slatefelt-850 {
-                --tw-gradient-from: #141e27;
-            }
-
-            .via-slatefelt-900 {
-                --tw-gradient-via: #0f161d;
-            }
-
-            .to-slatefelt-900 {
-                --tw-gradient-to: #0f161d;
-            }
-
-            .to-slatefelt-950 {
-                --tw-gradient-to: #090d11;
-            }
-
-
-            .font-mono {
-                font-family: var(--font-mono);
-            }
-
-            .font-medium {
-                font-weight: 500;
-            }
-
-            .font-semibold {
-                font-weight: 600;
-            }
-
-            .font-bold {
-                font-weight: 700;
-            }
-
-            .font-extrabold {
-                font-weight: 800;
-            }
-
-            .italic {
-                font-style: italic;
-            }
-
-            .uppercase {
-                text-transform: uppercase;
-            }
-
-            .line-through {
-                text-decoration: line-through;
-            }
-
-            .leading-none {
-                line-height: 1;
-            }
-
-            .tracking-tight {
-                letter-spacing: -0.025em;
-            }
-
-            .tracking-wider {
-                letter-spacing: 0.05em;
-            }
-
-            .text-left {
-                text-align: left;
-            }
-
-            .text-center {
-                text-align: center;
-            }
-
-            .text-right {
-                text-align: right;
-            }
-
-
-            .text-\[10px\] {
-                font-size: 10px;
-            }
-
-            .text-\[11px\] {
-                font-size: 11px;
-            }
-
-            .text-xs {
-                font-size: 0.75rem;
-                line-height: 1rem;
-            }
-
-            .text-sm {
+            .sm\:text-sm {
                 font-size: 0.875rem;
                 line-height: 1.25rem;
             }
 
-            .text-base {
-                font-size: 1rem;
-                line-height: 1.5rem;
-            }
-
-            .text-lg {
+            .sm\:text-lg {
                 font-size: 1.125rem;
                 line-height: 1.75rem;
             }
 
-            .text-xl {
+            .sm\:text-xl {
                 font-size: 1.25rem;
                 line-height: 1.75rem;
             }
 
-            .text-2xl {
-                font-size: 1.5rem;
-                line-height: 2rem;
+            .sm\:text-3xl {
+                font-size: 1.875rem;
+                line-height: 2.25rem;
+            }
+
+            .sm\:grid-cols-2 {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .sm\:grid-cols-4 {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+
+            .sm\:grid-cols-12 {
+                grid-template-columns: repeat(12, minmax(0, 1fr));
+            }
+
+            .sm\:col-span-1 {
+                grid-column: span 1 / span 1;
+            }
+
+            .sm\:col-span-2 {
+                grid-column: span 2 / span 2;
+            }
+
+            .sm\:col-span-5 {
+                grid-column: span 5 / span 5;
+            }
+        }
+
+
+        @media (min-width: 1024px) {
+            .lg\:grid-cols-12 {
+                grid-template-columns: repeat(12, minmax(0, 1fr));
+            }
+
+            .lg\:col-span-5 {
+                grid-column: span 5 / span 5;
+            }
+
+            .lg\:col-span-7 {
+                grid-column: span 7 / span 7;
+            }
+        }
+
+
+        /* Authentic Pool Ball Styling */
+        .pool-ball {
+            position: relative;
+            border-radius: 9999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-sans);
+            font-weight: 800;
+            box-shadow: inset -4px -5px 8px rgba(0, 0, 0, 0.55), inset 3px 3px 6px rgba(255, 255, 255, 0.35), 0 4px 10px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+
+        .pool-ball-number {
+            background: #ffffff;
+            color: #0f172a;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.3);
+            line-height: 1;
+        }
+
+
+        .pool-ball.stripe {
+            background: #f8fafc !important;
+        }
+
+            .pool-ball.stripe::before {
+                content: '';
+                position: absolute;
+                left: 0;
+                right: 0;
+                top: 22%;
+                bottom: 22%;
+                background: var(--ball-color);
+                z-index: 1;
             }
 
 
-            .text-white {
-                color: #ffffff;
-            }
+        .felt-surface {
+            background-image: radial-gradient(rgba(16, 185, 129, 0.06) 1px, transparent 0);
+            background-size: 20px 20px;
+        }
 
-            .text-slate-950 {
-                color: #020617;
-            }
 
-            .text-slate-100 {
-                color: #f1f5f9;
-            }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
 
-            .text-slate-200 {
-                color: #e2e8f0;
-            }
+        ::-webkit-scrollbar-track {
+            background: #0f161d;
+        }
 
-            .text-slate-300 {
-                color: #cbd5e1;
-            }
+        ::-webkit-scrollbar-thumb {
+            background: #263646;
+            border-radius: 3px;
+        }
 
-            .text-slate-400 {
-                color: #94a3b8;
-            }
-
-            .text-slate-500 {
-                color: #64748b;
-            }
-
-            .text-slate-600 {
-                color: #475569;
-            }
-
-            .text-emerald-100 {
-                color: #d1fae5;
-            }
-
-            .text-emerald-300 {
-                color: #6ee7b7;
-            }
-
-            .text-emerald-400 {
-                color: #34d399;
-            }
-
-            .text-blue-300 {
-                color: #93c5fd;
-            }
-
-            .text-blue-400 {
-                color: #60a5fa;
-            }
-
-            .text-amber-100 {
-                color: #fef3c7;
-            }
-
-            .text-amber-200 {
-                color: #fde68a;
-            }
-
-            .text-amber-300 {
-                color: #fcd34d;
-            }
-
-            .text-rose-100 {
-                color: #ffe4e6;
-            }
-
-            .text-rose-300 {
-                color: #fda4af;
-            }
-
-            .text-rose-400 {
-                color: #fb7185;
+            ::-webkit-scrollbar-thumb:hover {
+                background: #364b60;
             }
 
 
-            .opacity-0 {
+        @keyframes pulseGlow {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.35);
+            }
+
+            50% {
+                box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+            }
+        }
+
+        .active-shooter-ring {
+            animation: pulseGlow 2.4s infinite;
+        }
+
+
+        @keyframes ping {
+            75%, 100% {
+                transform: scale(1.8);
                 opacity: 0;
             }
-
-            .opacity-30 {
-                opacity: 0.3;
-            }
-
-            .opacity-35 {
-                opacity: 0.35;
-            }
-
-            .opacity-40 {
-                opacity: 0.4;
-            }
-
-            .opacity-50 {
-                opacity: 0.5;
-            }
-
-            .opacity-75 {
-                opacity: 0.75;
-            }
-
-            .opacity-80 {
-                opacity: 0.8;
-            }
-
-            .grayscale {
-                filter: grayscale(100%);
-            }
-
-
-            .shadow {
-                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.25);
-            }
-
-            .shadow-md {
-                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
-            }
-
-            .shadow-lg {
-                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.45);
-            }
-
-            .shadow-xl {
-                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-            }
-
-            .shadow-2xl {
-                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65);
-            }
-
-
-            .backdrop-blur {
-                backdrop-filter: blur(8px);
-                -webkit-backdrop-filter: blur(8px);
-            }
-
-            .backdrop-blur-sm {
-                backdrop-filter: blur(4px);
-                -webkit-backdrop-filter: blur(4px);
-            }
-
-            .transition {
-                transition: all 0.18s ease;
-            }
-
-            .transition-all {
-                transition: all 0.25s ease;
-            }
-
-            .transition-transform {
-                transition: transform 0.18s ease;
-            }
-
-            .duration-300 {
-                transition-duration: 300ms;
-            }
-
-            .transform {
-                transform: translateZ(0);
-            }
-
-
-            /* Hover & Active States */
-            .hover\:bg-emerald-400:hover:not(:disabled) {
-                background-color: #34d399;
-            }
-
-            .hover\:bg-emerald-500\/25:hover:not(:disabled) {
-                background-color: rgba(16, 185, 129, 0.25);
-            }
-
-            .hover\:bg-emerald-600\/25:hover:not(:disabled) {
-                background-color: rgba(5, 150, 105, 0.25);
-            }
-
-            .hover\:bg-blue-500:hover:not(:disabled) {
-                background-color: #3b82f6;
-            }
-
-            .hover\:bg-blue-600\/25:hover:not(:disabled) {
-                background-color: rgba(37, 99, 235, 0.25);
-            }
-
-            .hover\:bg-amber-600\/20:hover:not(:disabled) {
-                background-color: rgba(217, 119, 6, 0.2);
-            }
-
-            .hover\:bg-rose-500:hover:not(:disabled) {
-                background-color: #f43f5e;
-            }
-
-            .hover\:bg-rose-900\/60:hover:not(:disabled) {
-                background-color: rgba(136, 19, 55, 0.6);
-            }
-
-            .hover\:bg-slatefelt-700:hover:not(:disabled) {
-                background-color: #263646;
-            }
-
-            .hover\:bg-slatefelt-800:hover:not(:disabled) {
-                background-color: #1a2632;
-            }
-
-            .hover\:border-emerald-500:hover:not(:disabled) {
-                border-color: #10b981;
-            }
-
-            .hover\:border-blue-500\/50:hover:not(:disabled) {
-                border-color: rgba(59, 130, 246, 0.5);
-            }
-
-            .hover\:border-amber-500\/50:hover:not(:disabled) {
-                border-color: rgba(245, 158, 11, 0.5);
-            }
-
-            .hover\:border-slate-500:hover:not(:disabled) {
-                border-color: #64748b;
-            }
-
-            .hover\:text-white:hover:not(:disabled) {
-                color: #ffffff;
-            }
-
-            .hover\:text-slate-200:hover:not(:disabled) {
-                color: #e2e8f0;
-            }
-
-            .hover\:text-slate-300:hover:not(:disabled) {
-                color: #cbd5e1;
-            }
-
-            .hover\:text-blue-300:hover:not(:disabled) {
-                color: #93c5fd;
-            }
-
-            .hover\:text-amber-300:hover:not(:disabled) {
-                color: #fcd34d;
-            }
-
-            .hover\:text-rose-300:hover:not(:disabled) {
-                color: #fda4af;
-            }
-
-            .hover\:underline:hover {
-                text-decoration: underline;
-            }
-
-            .active\:scale-\[0\.98\]:active {
-                transform: scale(0.98);
-            }
-
-            .active\:scale-\[0\.99\]:active {
-                transform: scale(0.99);
-            }
-
-            .disabled\:opacity-30:disabled {
-                opacity: 0.3;
-            }
-
-            .disabled\:opacity-35:disabled {
-                opacity: 0.35;
-            }
-
-            .disabled\:opacity-40:disabled {
-                opacity: 0.4;
-            }
-
-            .disabled\:pointer-events-none:disabled {
-                pointer-events: none;
-            }
-
-
-            input:focus, select:focus {
-                outline: none;
-                border-color: #10b981;
-            }
-
-
-            table {
-                border-collapse: collapse;
-            }
-
-            .border-collapse {
-                border-collapse: collapse;
-            }
-
-
-            /* Responsive Breakpoints */
-            @media (min-width: 640px) {
-                .sm\:flex-initial {
-                    flex: 0 1 auto;
-                }
-
-                .sm\:flex-row {
-                    flex-direction: row;
-                }
-
-                .sm\:flex-nowrap {
-                    flex-wrap: nowrap;
-                }
-
-                .sm\:w-auto {
-                    width: auto;
-                }
-
-                .sm\:p-5 {
-                    padding: 1.25rem;
-                }
-
-                .sm\:p-6 {
-                    padding: 1.5rem;
-                }
-
-                .sm\:text-sm {
-                    font-size: 0.875rem;
-                    line-height: 1.25rem;
-                }
-
-                .sm\:text-lg {
-                    font-size: 1.125rem;
-                    line-height: 1.75rem;
-                }
-
-                .sm\:text-xl {
-                    font-size: 1.25rem;
-                    line-height: 1.75rem;
-                }
-
-                .sm\:text-3xl {
-                    font-size: 1.875rem;
-                    line-height: 2.25rem;
-                }
-
-                .sm\:grid-cols-2 {
-                    grid-template-columns: repeat(2, minmax(0, 1fr));
-                }
-
-                .sm\:grid-cols-4 {
-                    grid-template-columns: repeat(4, minmax(0, 1fr));
-                }
-
-                .sm\:grid-cols-12 {
-                    grid-template-columns: repeat(12, minmax(0, 1fr));
-                }
-
-                .sm\:col-span-1 {
-                    grid-column: span 1 / span 1;
-                }
-
-                .sm\:col-span-2 {
-                    grid-column: span 2 / span 2;
-                }
-
-                .sm\:col-span-5 {
-                    grid-column: span 5 / span 5;
-                }
-            }
-
-
-            @media (min-width: 1024px) {
-                .lg\:grid-cols-12 {
-                    grid-template-columns: repeat(12, minmax(0, 1fr));
-                }
-
-                .lg\:col-span-5 {
-                    grid-column: span 5 / span 5;
-                }
-
-                .lg\:col-span-7 {
-                    grid-column: span 7 / span 7;
-                }
-            }
-
-
-            /* Authentic Pool Ball Styling */
-            .pool-ball {
-                position: relative;
-                border-radius: 9999px;
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                font-family: var(--font-sans);
-                font-weight: 800;
-                box-shadow: inset -4px -5px 8px rgba(0, 0, 0, 0.55), inset 3px 3px 6px rgba(255, 255, 255, 0.35), 0 4px 10px rgba(0, 0, 0, 0.5);
-                overflow: hidden;
-                flex-shrink: 0;
-            }
-
-
-            .pool-ball-number {
-                background: #ffffff;
-                color: #0f172a;
-                border-radius: 9999px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 2;
-                box-shadow: inset 0 1px 2px rgba(0,0,0,0.3);
-                line-height: 1;
-            }
-
-
-            .pool-ball.stripe {
-                background: #f8fafc !important;
-            }
-
-                .pool-ball.stripe::before {
-                    content: '';
-                    position: absolute;
-                    left: 0;
-                    right: 0;
-                    top: 22%;
-                    bottom: 22%;
-                    background: var(--ball-color);
-                    z-index: 1;
-                }
-
-
-            .felt-surface {
-                background-image: radial-gradient(rgba(16, 185, 129, 0.06) 1px, transparent 0);
-                background-size: 20px 20px;
-            }
-
-
-            ::-webkit-scrollbar {
-                width: 6px;
-                height: 6px;
-            }
-
-            ::-webkit-scrollbar-track {
-                background: #0f161d;
-            }
-
-            ::-webkit-scrollbar-thumb {
-                background: #263646;
-                border-radius: 3px;
-            }
-
-                ::-webkit-scrollbar-thumb:hover {
-                    background: #364b60;
-                }
-
-
-            @keyframes pulseGlow {
-                0%, 100% {
-                    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.35);
-                }
-
-                50% {
-                    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
-                }
-            }
-
-            .active-shooter-ring {
-                animation: pulseGlow 2.4s infinite;
-            }
-
-
-            @keyframes ping {
-                75%, 100% {
-                    transform: scale(1.8);
-                    opacity: 0;
-                }
-            }
-
-            .animate-ping {
-                animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
-            }
-            /*
+        }
+
+        .animate-ping {
+            animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+        /*
         * ---------------------------------------------------------
         * RING GAME - LANDSCAPE PHONE LAYOUT
         * ---------------------------------------------------------
         */
 
-            /* Switch the live Ring Game screen to two columns
+        /* Switch the live Ring Game screen to two columns
          when the device is actually being used landscape. */
-            @media screen and (orientation: landscape) and (min-width: 700px) {
+        @media screen and (orientation: landscape) and (min-width: 700px) {
 
-                .ring-live-grid {
-                    display: grid;
-                    grid-template-columns: repeat(12, minmax(0, 1fr));
-                    gap: 1rem;
-                    align-items: start;
-                }
-
-                /* At The Table + Money Balls */
-                .ring-live-main {
-                    grid-column: span 7 / span 7;
-                    min-width: 0;
-                }
-
-                /* Rotation + Who Owes Whom */
-                .ring-live-side {
-                    grid-column: span 5 / span 5;
-                    min-width: 0;
-                }
+            .ring-live-grid {
+                display: grid;
+                grid-template-columns: repeat(12, minmax(0, 1fr));
+                gap: 1rem;
+                align-items: start;
             }
 
-
-            /* Save vertical room on short phone screens. */
-            @media screen and (orientation: landscape) and (max-height: 500px) {
-
-                #header-subtitle {
-                    display: none;
-                }
-
-                #app-root {
-                    padding-top: 0.75rem;
-                    padding-bottom: 1rem;
-                }
+            /* At The Table + Money Balls */
+            .ring-live-main {
+                grid-column: span 7 / span 7;
+                min-width: 0;
             }
+
+            /* Rotation + Who Owes Whom */
+            .ring-live-side {
+                grid-column: span 5 / span 5;
+                min-width: 0;
+            }
+        }
+
+
+        /* Save vertical room on short phone screens. */
+        @media screen and (orientation: landscape) and (max-height: 500px) {
+
+            #header-subtitle {
+                display: none;
+            }
+
+            #app-root {
+                padding-top: 0.75rem;
+                padding-bottom: 1rem;
+            }
+        }
     </style>
 </head>
 <div id="orientation-debug"
@@ -1692,6 +1694,24 @@
         };
 
 
+        /*
+        * ---------------------------------------------------------
+        * SUPABASE
+        * ---------------------------------------------------------
+        */
+        const SUPABASE_URL =
+            'https://ybtxfjdulygyhluhnhss.supabase.co';
+
+        const SUPABASE_PUBLISHABLE_KEY =
+            'sb_publishable_8Nucrpf3K-nFBoGhtooZaA_h7dTphIR';
+
+        const supabaseClient =
+            supabase.createClient(
+                SUPABASE_URL,
+                SUPABASE_PUBLISHABLE_KEY
+            );
+
+
         const STORAGE_KEY = 'ringgame_pro_state_v1';
 
 
@@ -1722,6 +1742,14 @@
         }
 
 
+        /*
+        * ---------------------------------------------------------
+        * USER AUTHENTICATION STATE
+        * ---------------------------------------------------------
+        */
+        let currentUser = null;
+        let currentProfile = null;
+
         let state = loadState();
         let activeTab = 'table'; // 'table' | 'racks' | 'ledger' | 'history'
         let dragSourceIndex = null;
@@ -1748,6 +1776,289 @@
             } catch (e) {
             console.error('Failed to save state:', e);
             }
+        }
+
+        /*
+        * ---------------------------------------------------------
+        * USER AUTHENTICATION
+        * ---------------------------------------------------------
+        */
+
+        /**
+         * Load the current signed-in user and that user's profile.
+         */
+        async function loadCurrentUser() {
+            const {
+                data: { session },
+                error
+            } = await supabaseClient.auth.getSession();
+
+            if (error) {
+                console.error('Could not load Supabase session:', error);
+                return;
+            }
+
+            currentUser = session?.user || null;
+
+            if (currentUser) {
+                await loadCurrentProfile();
+            } else {
+                currentProfile = null;
+            }
+
+            render();
+        }
+
+
+        /**
+         * Load the signed-in user's PoolApp profile.
+         */
+        async function loadCurrentProfile() {
+            if (!currentUser) {
+                currentProfile = null;
+                return;
+            }
+
+            const { data, error } =
+                await supabaseClient
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', currentUser.id)
+                    .maybeSingle();
+
+            if (error) {
+                console.error('Could not load profile:', error);
+                return;
+            }
+
+            currentProfile = data || null;
+        }
+
+
+        /**
+         * Create a new PoolApp account.
+         */
+        async function createAccount(
+            email,
+            password,
+            displayName
+        ) {
+            const cleanEmail = email.trim();
+            const cleanName = displayName.trim();
+
+            if (!cleanEmail || !password || !cleanName) {
+                showToast(
+                    'Name, email, and password are required.',
+                    'warning'
+                );
+
+                return;
+            }
+
+            const { data, error } =
+                await supabaseClient.auth.signUp({
+                    email: cleanEmail,
+                    password: password,
+                    options: {
+                        data: {
+                            display_name: cleanName
+                        },
+                        emailRedirectTo:
+                            window.location.origin
+                    }
+                });
+
+            if (error) {
+                console.error('Account creation failed:', error);
+
+                showToast(
+                    error.message || 'Could not create account.',
+                    'danger'
+                );
+
+                return;
+            }
+
+
+            /*
+             * If email confirmation is enabled, Supabase may
+             * create the user without creating an active session yet.
+             */
+            if (!data.session) {
+                showToast(
+                    'Account created. Check your email to confirm your account.',
+                    'success'
+                );
+
+                closeModal();
+                return;
+            }
+
+
+            currentUser = data.user;
+
+            await ensureCurrentUserProfile(cleanName);
+
+            showToast(
+                `Welcome, ${cleanName}!`,
+                'success'
+            );
+
+            closeModal();
+            render();
+        }
+
+
+        /**
+         * Sign into an existing PoolApp account.
+         */
+        async function signInUser(email, password) {
+            const cleanEmail = email.trim();
+
+            if (!cleanEmail || !password) {
+                showToast(
+                    'Email and password are required.',
+                    'warning'
+                );
+
+                return;
+            }
+
+            const { data, error } =
+                await supabaseClient.auth.signInWithPassword({
+                    email: cleanEmail,
+                    password: password
+                });
+
+            if (error) {
+                console.error('Sign in failed:', error);
+
+                showToast(
+                    error.message || 'Could not sign in.',
+                    'danger'
+                );
+
+                return;
+            }
+
+            currentUser = data.user;
+
+            await ensureCurrentUserProfile();
+
+            await loadCurrentProfile();
+
+            closeModal();
+            render();
+
+            showToast(
+                `Welcome back${currentProfile?.display_name
+                    ? `, ${currentProfile.display_name}`
+                    : ''
+                }!`,
+                'success'
+            );
+        }
+
+
+        /**
+         * Ensure the authenticated account has a profiles row.
+         */
+        async function ensureCurrentUserProfile(displayName = '') {
+            if (!currentUser) return;
+
+            /*
+             * First see whether the profile already exists.
+             */
+            const { data: existingProfile, error: readError } =
+                await supabaseClient
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', currentUser.id)
+                    .maybeSingle();
+
+            if (readError) {
+                console.error(
+                    'Could not check user profile:',
+                    readError
+                );
+
+                return;
+            }
+
+            if (existingProfile) {
+                currentProfile = existingProfile;
+                return;
+            }
+
+
+            /*
+             * OAuth providers such as Google will eventually provide
+             * the display name through user metadata.
+             */
+            const profileName =
+                displayName.trim() ||
+                currentUser.user_metadata?.display_name ||
+                currentUser.user_metadata?.full_name ||
+                currentUser.email?.split('@')[0] ||
+                'Player';
+
+
+            const { data, error } =
+                await supabaseClient
+                    .from('profiles')
+                    .insert({
+                        id: currentUser.id,
+                        display_name: profileName
+                    })
+                    .select()
+                    .single();
+
+            if (error) {
+                console.error(
+                    'Could not create user profile:',
+                    error
+                );
+
+                showToast(
+                    'Signed in, but the player profile could not be created.',
+                    'warning'
+                );
+
+                return;
+            }
+
+            currentProfile = data;
+        }
+
+
+        /**
+         * Sign out of PoolApp.
+         */
+        async function signOutUser() {
+            const { error } =
+                await supabaseClient.auth.signOut();
+
+            if (error) {
+                console.error('Sign out failed:', error);
+
+                showToast(
+                    'Could not sign out.',
+                    'danger'
+                );
+
+                return;
+            }
+
+            currentUser = null;
+            currentProfile = null;
+
+            closeModal();
+            render();
+
+            showToast(
+                'Signed out successfully.',
+                'info'
+            );
         }
 
 
@@ -2922,6 +3233,263 @@
 
         function closeModal() {
             document.getElementById('modal-backdrop').classList.add('hidden');
+        }
+
+
+        /**
+        * ACCOUNT / SIGN-IN MODAL
+        */
+        function openAccountModal() {
+
+            /*
+             * If already signed in, show the current account.
+             */
+            if (currentUser) {
+
+                const displayName =
+                    currentProfile?.display_name ||
+                    currentUser.email ||
+                    'Player';
+
+                openModal(`
+                    <div class="p-5 sm:p-6">
+
+                        <div class="flex items-start justify-between gap-4 mb-5">
+
+                            <div>
+                                <div class="text-[11px] font-bold uppercase tracking-wider text-emerald-400 mb-1">
+                                    PoolApp Account
+                                </div>
+
+                                <h2 class="text-xl font-extrabold text-white">
+                                    ${escapeHTML(displayName)}
+                                </h2>
+                            </div>
+
+                            <button
+                                onclick="closeModal()"
+                                class="shrink-0 w-9 h-9 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-700 text-slate-300 hover:text-white font-bold transition"
+                            >
+                                ✕
+                            </button>
+
+                        </div>
+
+
+                        <div class="bg-slatefelt-950 border border-slatefelt-700 rounded-xl p-4 mb-4">
+
+                            <div class="text-[11px] uppercase tracking-wider text-slate-500 font-bold">
+                                Signed In As
+                            </div>
+
+                            <div class="text-sm text-white mt-1">
+                                ${escapeHTML(currentUser.email || '')}
+                            </div>
+
+                        </div>
+
+
+                        <button
+                            onclick="signOutUser()"
+                            class="w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm transition"
+                        >
+                            Sign Out
+                        </button>
+
+                    </div>
+                `);
+
+                return;
+            }
+
+
+            /*
+             * Signed-out view.
+             */
+            openModal(`
+                <div class="p-5 sm:p-6">
+
+                    <div class="flex items-start justify-between gap-4 mb-5">
+
+                        <div>
+                            <div class="text-[11px] font-bold uppercase tracking-wider text-emerald-400 mb-1">
+                                PoolApp Account
+                            </div>
+
+                            <h2 class="text-xl font-extrabold text-white">
+                                Sign In
+                            </h2>
+
+                            <p class="text-xs text-slate-400 mt-1">
+                                Sign in to save games, stats and tournament history.
+                            </p>
+                        </div>
+
+                        <button
+                            onclick="closeModal()"
+                            class="shrink-0 w-9 h-9 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-700 text-slate-300 hover:text-white font-bold transition"
+                        >
+                            ✕
+                        </button>
+
+                    </div>
+
+
+                    <!-- Sign In -->
+                    <section class="mb-6">
+
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+                            Existing Account
+                        </h3>
+
+
+                        <label class="block text-xs text-slate-400 font-semibold mb-1.5">
+                            Email
+                        </label>
+
+                        <input
+                            id="signin-email"
+                            type="email"
+                            autocomplete="email"
+                            placeholder="you@example.com"
+                            class="w-full bg-slatefelt-950 border border-slatefelt-700 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-slate-600 mb-3"
+                        />
+
+
+                        <label class="block text-xs text-slate-400 font-semibold mb-1.5">
+                            Password
+                        </label>
+
+                        <input
+                            id="signin-password"
+                            type="password"
+                            autocomplete="current-password"
+                            placeholder="Password"
+                            class="w-full bg-slatefelt-950 border border-slatefelt-700 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-slate-600 mb-3"
+                        />
+
+
+                        <button
+                            onclick="submitSignIn()"
+                            class="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm transition"
+                        >
+                            Sign In
+                        </button>
+
+                    </section>
+
+
+                    <div class="flex items-center gap-3 my-5">
+
+                        <div class="h-px bg-slatefelt-700 flex-1"></div>
+
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                            New Player
+                        </span>
+
+                        <div class="h-px bg-slatefelt-700 flex-1"></div>
+
+                    </div>
+
+
+                    <!-- Create Account -->
+                    <section>
+
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+                            Create Account
+                        </h3>
+
+
+                        <label class="block text-xs text-slate-400 font-semibold mb-1.5">
+                            Display Name
+                        </label>
+
+                        <input
+                            id="signup-name"
+                            type="text"
+                            maxlength="30"
+                            autocomplete="nickname"
+                            placeholder="Andrew"
+                            class="w-full bg-slatefelt-950 border border-slatefelt-700 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-slate-600 mb-3"
+                        />
+
+
+                        <label class="block text-xs text-slate-400 font-semibold mb-1.5">
+                            Email
+                        </label>
+
+                        <input
+                            id="signup-email"
+                            type="email"
+                            autocomplete="email"
+                            placeholder="you@example.com"
+                            class="w-full bg-slatefelt-950 border border-slatefelt-700 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-slate-600 mb-3"
+                        />
+
+
+                        <label class="block text-xs text-slate-400 font-semibold mb-1.5">
+                            Password
+                        </label>
+
+                        <input
+                            id="signup-password"
+                            type="password"
+                            autocomplete="new-password"
+                            placeholder="Create a password"
+                            class="w-full bg-slatefelt-950 border border-slatefelt-700 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-slate-600 mb-3"
+                        />
+
+
+                        <button
+                            onclick="submitCreateAccount()"
+                            class="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-sm transition"
+                        >
+                            Create Account
+                        </button>
+
+                    </section>
+
+
+                    <p class="text-[11px] text-slate-500 text-center mt-5">
+                        You can still play Ring Game without creating an account.
+                    </p>
+
+                </div>
+            `);
+        }
+
+
+        async function submitSignIn() {
+
+            const email =
+                document.getElementById('signin-email')?.value || '';
+
+            const password =
+                document.getElementById('signin-password')?.value || '';
+
+            await signInUser(
+                email,
+                password
+            );
+        }
+
+
+        async function submitCreateAccount() {
+
+            const displayName =
+                document.getElementById('signup-name')?.value || '';
+
+            const email =
+                document.getElementById('signup-email')?.value || '';
+
+            const password =
+                document.getElementById('signup-password')?.value || '';
+
+            await createAccount(
+                email,
+                password,
+                displayName
+            );
         }
 
 
@@ -5708,6 +6276,17 @@
                 </button>
             `;
 
+            const accountButton = `
+              <button
+                onclick="openAccountModal()"
+                class="px-3 py-1.5 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-700 text-slate-300 hover:text-white font-semibold text-xs transition"
+              >
+                ${currentProfile
+                                ? escapeHTML(currentProfile.display_name)
+                                : 'Account'
+                            }
+              </button>
+            `;
 
             if (state.view === 'live' && state.game) {
 
@@ -5717,6 +6296,7 @@
                 headerActions.innerHTML = `
                     ${rulesButton}
                     ${playersButton}
+                    ${accountButton}
 
                     <button
                     onclick="openEndGameModal()"
@@ -5741,6 +6321,7 @@
 
                 headerActions.innerHTML = `
                 ${rulesButton}
+                ${accountButton}
             `;
 
                 root.innerHTML = renderSetupView();
@@ -5764,8 +6345,32 @@
             }
         });
 
-        // Initial Render
+        /*
+        * ---------------------------------------------------------
+        * INITIAL APPLICATION STARTUP
+        * ---------------------------------------------------------
+        */
         render();
-        </script>
+
+        loadCurrentUser();
+
+        supabaseClient.auth.onAuthStateChange(
+            async (event, session) => {
+
+                currentUser =
+                    session?.user || null;
+
+                if (currentUser) {
+                    await ensureCurrentUserProfile();
+                    await loadCurrentProfile();
+                } else {
+                    currentProfile = null;
+                }
+
+                render();
+            }
+        );
+
+    </script>
 </body>
 </html>
