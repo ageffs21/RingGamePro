@@ -1753,6 +1753,10 @@
         */
         let currentUser = null;
         let currentProfile = null;
+        /*
+        * Current Supabase Realtime lobby subscription.
+        */
+        let onlineLobbyChannel = null;
 
         let state = loadState();
         let activeTab = 'table'; // 'table' | 'racks' | 'ledger' | 'history'
@@ -2273,21 +2277,21 @@
                     'host';
 
                 /*
-                 * An online lobby uses actual joined players instead of
-                 * the offline placeholder roster.
-                 *
-                 * Start the lobby with only the signed-in host.
+                 * Load the actual game_players rows back from Supabase.
+                 * This ensures the host also uses the authoritative database
+                 * participation ID instead of a temporary lobby ID.
                  */
-                state.config.players = [
-                    {
-                        id: 'lobby_' + currentUser.id,
-                        userId: currentUser.id,
-                        name: currentProfile.display_name,
-                        isGuest: false
-                    }
-                ];
+                await loadOnlineLobbyRoster(
+                    gameData.id
+                );
 
-                state.config.playerCount = 1;
+
+                /*
+                 * Watch for registered users and guests joining or leaving.
+                 */
+                await subscribeToOnlineLobby(
+                gameData.id
+                );
 
 
                 saveState();
@@ -2398,6 +2402,66 @@
              * the Join Code display.
              */
             render();
+        }
+
+
+        /**
+        * Subscribe to player changes for the current online lobby.
+        *
+        * Whenever someone joins, leaves, or is updated, reload the
+        * authoritative roster from Supabase and redraw Setup.
+        */
+        async function subscribeToOnlineLobby(gameId) {
+
+            if (!gameId) {
+                return;
+            }
+
+
+            /*
+             * Remove an earlier subscription before creating another.
+             */
+            if (onlineLobbyChannel) {
+
+                await supabaseClient.removeChannel(
+                    onlineLobbyChannel
+                );
+
+                onlineLobbyChannel = null;
+            }
+
+            onlineLobbyChannel =
+                supabaseClient
+                    .channel(
+                        `online-lobby-${gameId}`
+                    )
+                    .on(
+                        'postgres_changes',
+                        {
+                            event: '*',
+                            schema: 'public',
+                            table: 'game_players',
+                            filter: `game_id=eq.${gameId}`
+                        },
+                        async () => {
+
+                            /*
+                             * Supabase notified this phone that the
+                             * lobby roster changed.
+                             */
+                            await loadOn * ineLobbyRoster(
+                            gameId
+                            );
+                                render();
+                       }
+                    )
+                    .subscribe(status => {
+
+                    console.log(
+                        'Online lobby subscription*',
+                        status
+                    );
+                });
         }
 
 
@@ -4709,6 +4773,10 @@
                     gameData.id
                 );
 
+                await subscribeToOnlineLobby(
+                    gameData.id
+                );
+
                 state.config.onlineGameId =
                     gameData.id;
 
@@ -4889,6 +4957,65 @@
             saveState();
 
             return true;
+        }
+
+
+        /**
+        * Listen for player changes in the current online lobby.
+        */
+        async function subscribeToOnlineLobby(gameId) {
+
+            if (!gameId) {
+                return;
+            }
+
+            /*
+             * Remove an existing lobby subscription first.
+             */
+            if (onlineLobbyChannel) {
+
+                await supabaseClient.removeChannel(
+                    onlineLobbyChannel
+                );
+
+                onlineLobbyChannel = null;
+            }
+
+
+            onlineLobbyChannel =
+                supabaseClient
+                    .channel(
+                        'online-lobby-' + gameId
+                    )
+                    .on(
+                        'postgres_changes',
+                        {
+                            event: '*',
+                            schema: 'public',
+                            table: 'game_players',
+                            filter: 'game_id=eq.' + gameId
+                        },
+                        async () => {
+
+                            /*
+                             * Something changed in game_players.
+                             * Reload the entire lobby roster.
+                             */
+                            await loadOnlineLobbyRoster(
+                                gameId
+                            );
+
+                            render();
+                        }
+                    )
+                    .subscribe(status => {
+
+                        console.log(
+                            'Online lobby subscription:',
+                            status
+                        );
+
+                    });
         }
 
 
