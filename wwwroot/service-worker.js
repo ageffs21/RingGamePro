@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ringgame-pro-v5.2';
+const CACHE_NAME = 'ringgame-pro-v5.5';
 
 const APP_FILES = [
     './',
@@ -56,60 +56,130 @@ self.addEventListener('activate', event => {
  */
 self.addEventListener('fetch', event => {
 
-    if (event.request.method !== 'GET') {
+    const request = event.request;
+
+    /*
+     * Only handle GET requests.
+     */
+    if (request.method !== 'GET') {
         return;
     }
 
-    const request = event.request;
 
-    // Pages/navigation should check the network first.
+    const requestUrl =
+        new URL(request.url);
+
+
+    /*
+     * CRITICAL:
+     *
+     * Only cache files that belong to RingGame Pro.
+     *
+     * Supabase, Google authentication, APIs, and all
+     * other external requests must bypass the service
+     * worker and go directly to the network.
+     */
+    if (requestUrl.origin !== self.location.origin) {
+        return;
+    }
+
+
+    /*
+     * Page navigation:
+     *
+     * Network first so the installed app gets the latest
+     * RingGame Pro HTML whenever internet is available.
+     *
+     * Fall back to the cached app when offline.
+     */
     if (request.mode === 'navigate') {
+
         event.respondWith(
+
             fetch(request)
+
                 .then(response => {
 
-                    const copy = response.clone();
+                    const copy =
+                        response.clone();
 
                     caches.open(CACHE_NAME)
                         .then(cache => {
-                            cache.put(request, copy);
+
+                            cache.put(
+                                request,
+                                copy
+                            );
+
                         });
 
                     return response;
                 })
+
                 .catch(() => {
+
                     return caches.match(request)
-                        .then(cached => cached || caches.match('./index.html'));
+                        .then(cached =>
+                            cached ||
+                            caches.match('./index.html')
+                        );
+
                 })
+
         );
 
         return;
     }
 
 
-    // Static assets can use cache first.
+    /*
+     * RingGame Pro static assets:
+     *
+     * Cache-first for icons and other same-origin files.
+     */
     event.respondWith(
+
         caches.match(request)
+
             .then(cached => {
+
                 if (cached) {
                     return cached;
                 }
 
+
                 return fetch(request)
+
                     .then(response => {
-                        if (!response || response.status !== 200) {
+
+                        if (
+                            !response ||
+                            response.status !== 200
+                        ) {
                             return response;
                         }
 
-                        const copy = response.clone();
+
+                        const copy =
+                            response.clone();
+
 
                         caches.open(CACHE_NAME)
                             .then(cache => {
-                                cache.put(request, copy);
+
+                                cache.put(
+                                    request,
+                                    copy
+                                );
+
                             });
+
 
                         return response;
                     });
+
             })
+
     );
+
 });
