@@ -1715,7 +1715,7 @@
         const STORAGE_KEY = 'ringgame_pro_state_v1';
 
 
-        const APP_VERSION = '0.5.0';
+        const APP_VERSION = '0.5.1';
 
 
         /**
@@ -1811,8 +1811,17 @@
             currentUser = session?.user || null;
 
             if (currentUser) {
+
                 await loadCurrentProfile();
+
+                /*
+                 * If this phone was already attached to an online lobby,
+                 * reload its authoritative cloud state.
+                 */
+                await restoreOnlineLobby();
+
             } else {
+
                 currentProfile = null;
             }
 
@@ -5201,6 +5210,109 @@
         }
 
 
+        /**
+        * Restore the current online lobby after the app loads
+        * or returns from the background.
+        *
+        * Supabase is authoritative for the lobby roster.
+        */
+        async function restoreOnlineLobby() {
+
+            if (
+                !currentUser ||
+                !state.config.isOnline ||
+                !state.config.onlineGameId
+            ) {
+                return;
+            }
+
+            const gameId =
+                state.config.onlineGameId;
+
+
+            /*
+             * Verify the cloud game still exists and determine
+             * its current status and this user's role.
+             */
+            const {
+                data: gameData,
+                error: gameError
+            } =
+                await supabaseClient
+                    .from('games')
+                    .select('*')
+                    .eq('id', gameId)
+                    .maybeSingle();
+
+
+            if (gameError) {
+
+                console.error(
+                    'Could not restore online game:',
+                    gameError
+                );
+
+                return;
+            }
+
+
+            /*
+             * The saved local lobby no longer represents a
+             * waiting/active cloud game.
+             */
+            if (
+                !gameData ||
+                gameData.status === 'completed' ||
+                gameData.status === 'cancelled'
+            ) {
+
+                state.config.isOnline = false;
+                state.config.onlineGameId = null;
+                state.config.joinCode = null;
+                state.config.onlineRole = null;
+
+                saveState();
+                render();
+
+                return;
+            }
+
+
+            state.config.joinCode =
+                gameData.join_code;
+
+            state.config.onlineRole =
+                gameData.host_id === currentUser.id
+                    ? 'host'
+                    : 'player';
+
+
+            /*
+             * Always replace the locally cached roster with
+             * the current Supabase roster.
+             */
+            await loadOnlineLobbyRoster(
+                gameId
+            );
+
+
+            /*
+             * Re-establish Realtime after app/background lifecycle changes.
+             */
+            await subscribeToOnlineLobby(
+                gameId
+            );
+
+            await subscribeToOnlineGame(
+                gameId
+            );
+
+
+            saveState();
+            render();
+        }
+
+
         function openLeavePlayerModal(playerId) {
             if (!state.game) return;
 
@@ -8265,6 +8377,22 @@
 
                     render();
                 }
+            }
+        );
+
+
+        document.addEventListener(
+            'visibilitychange',
+            async () => {
+
+                if (
+                    document.visibilityState === 'visible' &&
+                    currentUser &&
+                    state.config.isOnline
+                ) {
+                    await restoreOnlineLobby();
+                }
+
             }
         );
 
