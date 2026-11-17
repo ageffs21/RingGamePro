@@ -1761,6 +1761,7 @@
         */
         let onlineLobbyChannel = null;
         let onlineGameChannel = null;
+        let onlineLobbyRefreshTimer = null;
         let state = loadState();
         let activeTab = 'table'; // 'table' | 'racks' | 'ledger' | 'history'
         let dragSourceIndex = null;
@@ -2526,6 +2527,69 @@
                         }
 
                     });
+            /*
+             * Start the mobile fallback AFTER the Realtime
+             * subscription has been created.
+             */
+            startOnlineLobbyRefresh(
+                gameId
+            );
+        }
+
+
+        /**
+        * Start a lightweight lobby refresh fallback.
+        *
+        * Supabase Realtime remains the primary update path.
+        * This timer keeps mobile PWAs synchronized if Android
+        * suspends or misses a WebSocket event.
+        */
+        function startOnlineLobbyRefresh(gameId) {
+
+            stopOnlineLobbyRefresh();
+
+            if (!gameId) {
+                return;
+            }
+
+            onlineLobbyRefreshTimer =
+                window.setInterval(
+                    async () => {
+
+                        if (
+                            document.visibilityState !== 'visible' ||
+                            state.view !== 'setup' ||
+                            !state.config.isOnline ||
+                            state.config.onlineGameId !== gameId
+                        ) {
+                            return;
+                        }
+
+                        await loadOnlineLobbyRoster(
+                            gameId
+                        );
+
+                        render();
+
+                    },
+                    2000
+                );
+        }
+
+
+        /**
+         * Stop the mobile lobby refresh fallback.
+         */
+        function stopOnlineLobbyRefresh() {
+
+            if (onlineLobbyRefreshTimer) {
+
+                window.clearInterval(
+                    onlineLobbyRefreshTimer
+                );
+
+                onlineLobbyRefreshTimer = null;
+            }
         }
 
 
@@ -2615,13 +2679,11 @@
                         }
                     )
                     .subscribe((status, err) => {
-
                         console.log(
                             'Online game subscription:',
                             status,
                             err
                         );
-
                     });
         }
 
