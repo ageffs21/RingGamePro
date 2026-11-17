@@ -2552,24 +2552,70 @@
                 return;
             }
 
+            console.log(
+                'Starting lobby refresh timer:',
+                gameId
+            );
+
+
             onlineLobbyRefreshTimer =
                 window.setInterval(
                     async () => {
 
+                        /*
+                         * Only stop polling if this phone is no longer
+                         * attached to this particular online lobby.
+                         *
+                         * Do NOT depend on visibilityState or state.view.
+                         * Installed Android PWAs can behave differently
+                         * from a normal browser window.
+                         */
                         if (
-                            document.visibilityState !== 'visible' ||
-                            state.view !== 'setup' ||
                             !state.config.isOnline ||
                             state.config.onlineGameId !== gameId
                         ) {
                             return;
                         }
 
-                        await loadOnlineLobbyRoster(
-                            gameId
-                        );
 
-                        render();
+                        const previousRoster =
+                            state.config.players
+                                .map(player => player.id)
+                                .join('|');
+
+
+                        const success =
+                            await loadOnlineLobbyRoster(
+                                gameId
+                            );
+
+
+                        if (!success) {
+                            return;
+                        }
+
+
+                        const newRoster =
+                            state.config.players
+                                .map(player => player.id)
+                                .join('|');
+
+                        if (newRoster !== previousRoster) {
+
+                            const newCount =
+                                state.config.players.length;
+
+                            console.log(
+                                `Lobby roster changed: ${previousCount} -> ${newCount}`
+                            );
+
+                            render();
+
+                            showToast(
+                                `${newCount} players now in lobby.`,
+                                'info'
+                            );
+                        }
 
                     },
                     2000
