@@ -1757,7 +1757,7 @@
         * Current Supabase Realtime lobby subscription.
         */
         let onlineLobbyChannel = null;
-
+        let onlineGameChannel = null;
         let state = loadState();
         let activeTab = 'table'; // 'table' | 'racks' | 'ledger' | 'history'
         let dragSourceIndex = null;
@@ -2255,26 +2255,10 @@
                 /*
                  * Save the lobby identity in setup configuration.
                  */
-                state.config.onlineGameId =
-                    gameData.id;
-
-                state.config.joinCode =
-                    joinCode;
-
-                state.config.isOnline =
-                    true;
-
-                state.config.onlineGameId =
-                    gameData.id;
-
-                state.config.joinCode =
-                    joinCode;
-
-                state.config.isOnline =
-                    true;
-
-                state.config.onlineRole =
-                    'host';
+                state.config.onlineGameId = gameData.id;
+                state.config.joinCode = joinCode;
+                state.config.isOnline = true;
+                state.config.onlineRole = 'host';
 
                 /*
                  * Load the actual game_players rows back from Supabase.
@@ -2290,7 +2274,11 @@
                  * Watch for registered users and guests joining or leaving.
                  */
                 await subscribeToOnlineLobby(
-                gameData.id
+                    gameData.id
+                );
+
+                await subscribeToOnlineGame(
+                    gameData.id
                 );
 
 
@@ -2406,11 +2394,11 @@
 
 
         /**
-        * Subscribe to player changes for the current online lobby.
-        *
-        * Whenever someone joins, leaves, or is updated, reload the
-        * authoritative roster from Supabase and redraw Setup.
-        */
+         * Subscribe to player changes for the current online lobby.
+         *
+         * Whenever someone joins, leaves, or is updated, reload the
+         * authoritative roster from Supabase and redraw Setup.
+         */
         async function subscribeToOnlineLobby(gameId) {
 
             if (!gameId) {
@@ -2429,6 +2417,7 @@
 
                 onlineLobbyChannel = null;
             }
+
 
             onlineLobbyChannel =
                 supabaseClient
@@ -2449,19 +2438,171 @@
                              * Supabase notified this phone that the
                              * lobby roster changed.
                              */
-                            await loadOn * ineLobbyRoster(
-                            gameId
+                            await loadOnlineLobbyRoster(
+                                gameId
                             );
-                                render();
-                       }
-                    )
-                    .subscribe(status => {
 
-                    console.log(
-                        'Online lobby subscription*',
-                        status
-                    );
-                });
+                            render();
+                        }
+                    )
+                    .subscribe((status, err) => {
+
+                        console.log(
+                            'Online lobby subscription:',
+                            status,
+                            err
+                        );
+
+
+                        if (status === 'SUBSCRIBED') {
+
+                            showToast(
+                                'Live lobby connected.',
+                                'success'
+                            );
+
+                            return;
+                        }
+
+
+                        if (status === 'CHANNEL_ERROR') {
+
+                            console.error(
+                                'Online lobby channel error:',
+                                err
+                            );
+
+                            showToast(
+                                'Live lobby connection error.',
+                                'danger'
+                            );
+
+                            return;
+                        }
+
+
+                        if (status === 'TIMED_OUT') {
+
+                            console.error(
+                                'Online lobby connection timed out:',
+                                err
+                            );
+
+                            showToast(
+                                'Live lobby connection timed out.',
+                                'warning'
+                            );
+
+                            return;
+                        }
+
+
+                        if (status === 'CLOSED') {
+
+                            console.warn(
+                                'Online lobby channel closed.',
+                                err
+                            );
+                        }
+
+                    });
+        }
+
+
+        /**
+        * Listen for changes to the online game's status.
+        *
+        * This allows joined players to detect when the host
+        * starts the match.
+        */
+        async function subscribeToOnlineGame(gameId) {
+
+            if (!gameId) {
+                return;
+            }
+
+
+            /*
+             * Remove any previous game subscription.
+             */
+            if (onlineGameChannel) {
+
+                await supabaseClient.removeChannel(
+                    onlineGameChannel
+                );
+
+                onlineGameChannel = null;
+            }
+
+
+            onlineGameChannel =
+                supabaseClient
+                    .channel(
+                        `online-game-${gameId}`
+                    )
+                    .on(
+                        'postgres_changes',
+                        {
+                            event: 'UPDATE',
+                            schema: 'public',
+                            table: 'games',
+                            filter: `id=eq.${gameId}`
+                        },
+                        async (payload) => {
+
+                            console.log(
+                                'Online game changed:',
+                                payload
+                            );
+
+
+                            const updatedGame =
+                                payload.new;
+
+
+                            /*
+                             * The host started the match.
+                             */
+                            if (
+                                updatedGame.status === 'active' &&
+                                state.config.onlineRole === 'player'
+                            ) {
+
+                                showToast(
+                                    'The host started the match.',
+                                    'success'
+                                );
+
+
+                                /*
+                                 * We'll replace this with the full shared
+                                 * match-loading routine in the next step.
+                                 *
+                                 * For now this proves the joining phone
+                                 * receives the start signal.
+                                 */
+                                await loadOnlineLobbyRoster(
+                                    gameId
+                                );
+
+
+                                console.log(
+                                    'Host start detected for game:',
+                                    gameId
+                                );
+                            }
+
+                        }
+                    )
+                    .subscribe((status, err) => {
+
+                        console.log(
+                            'Online game subscription:',
+                            status,
+                            err
+                        );
+
+                    });
         }
 
 
@@ -4774,6 +4915,10 @@
                 );
 
                 await subscribeToOnlineLobby(
+                    gameData.id
+                );
+
+                await subscribeToOnlineGame(
                     gameData.id
                 );
 
