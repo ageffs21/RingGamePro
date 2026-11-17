@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ringgame-pro-v4';
+const CACHE_NAME = 'ringgame-pro-v5';
 
 const APP_FILES = [
     './',
