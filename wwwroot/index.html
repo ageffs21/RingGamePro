@@ -1722,6 +1722,10 @@
             return {
             view: 'setup', // 'setup' | 'live'
             config: {
+                onlineGameId: null,
+                joinCode: null,
+                isOnline: false,
+                onlineRole: null,
                 playerCount: 4,
                 players: [
                 { id: 'p1', name: 'Player 1' },
@@ -1783,7 +1787,6 @@
         * USER AUTHENTICATION
         * ---------------------------------------------------------
         */
-
         /**
          * Load the current signed-in user and that user's profile.
          */
@@ -1827,11 +1830,34 @@
                     .maybeSingle();
 
             if (error) {
-                console.error('Could not load profile:', error);
+                console.error(
+                    'Could not load profile:',
+                    error
+                );
+
                 return;
             }
 
             currentProfile = data || null;
+
+
+            /*
+             * When signed in, automatically use the permanent
+             * PoolApp display name for Player 1 during setup.
+             *
+             * Only do this while still on the setup screen.
+             */
+            if (
+                currentProfile &&
+                state.view === 'setup' &&
+                Array.isArray(state.config.players) &&
+                state.config.players.length > 0
+            ) {
+                state.config.players[0].name =
+                    currentProfile.display_name;
+
+                saveState();
+            }
         }
 
 
@@ -2063,6 +2089,363 @@
 
 
         /**
+        * Generate a short human-readable game join code.
+        *
+        * Ambiguous characters such as O/0 and I/1 are intentionally
+        * omitted so codes are easier to read across a pool table.
+        */
+        function generateJoinCode(length = 6) {
+
+            const characters =
+                'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+            let code = '';
+
+            for (let i = 0; i < length; i++) {
+
+                code +=
+                    characters[
+                    Math.floor(
+                        Math.random() *
+                        characters.length
+                    )
+                    ];
+            }
+
+            return code;
+        }
+
+
+        /**
+         * Create an online game lobby from the Match Setup screen.
+         *
+         * The Ring Game itself has not started yet. Players can join
+         * this lobby and the host can set/randomize shooting order
+         * before pressing Start Match.
+         */
+        async function createCloudGame() {
+
+            if (!currentUser || !currentProfile) {
+
+                showToast(
+                    'Sign in to create an online game.',
+                    'warning'
+                );
+
+                return false;
+            }
+
+
+            /*
+             * Lobby already exists.
+             */
+            if (
+                state.config.isOnline &&
+                state.config.onlineGameId
+            ) {
+                return true;
+            }
+
+
+            for (let attempt = 0; attempt < 5; attempt++) {
+
+                const joinCode =
+                    generateJoinCode();
+
+
+                const {
+                    data: gameData,
+                    error: gameError
+                } =
+                    await supabaseClient
+                        .from('games')
+                        .insert({
+
+                            host_id:
+                                currentUser.id,
+
+                            join_code:
+                                joinCode,
+
+                            game_type:
+                                'ring',
+
+                            /*
+                             * The match has not started yet.
+                             */
+                            status:
+                                'waiting'
+
+                        })
+                        .select()
+                        .single();
+
+
+                if (gameError) {
+
+                    /*
+                     * Duplicate join code.
+                     */
+                    if (gameError.code === '23505') {
+                        continue;
+                    }
+
+                    console.error(
+                        'Could not create online game lobby:',
+                        gameError
+                    );
+
+                    showToast(
+                        'Could not create online game.',
+                        'danger'
+                    );
+
+                    return false;
+                }
+
+
+                /*
+                 * Add the signed-in host as the first lobby player.
+                 */
+                const {
+                    error: playerError
+                } =
+                    await supabaseClient
+                        .from('game_players')
+                        .insert({
+
+                            game_id:
+                                gameData.id,
+
+                            user_id:
+                                currentUser.id,
+
+                            display_name:
+                                currentProfile.display_name,
+
+                            shooting_order:
+                                1,
+
+                            status:
+                                'active'
+
+                        });
+
+
+                if (playerError) {
+
+                    console.error(
+                        'Could not add host to online lobby:',
+                        playerError
+                    );
+
+                    showToast(
+                        'Lobby created, but host could not be added.',
+                        'danger'
+                    );
+
+                    return false;
+                }
+
+
+                /*
+                 * Save the lobby identity in setup configuration.
+                 */
+                state.config.onlineGameId =
+                    gameData.id;
+
+                state.config.joinCode =
+                    joinCode;
+
+                state.config.isOnline =
+                    true;
+
+                state.config.onlineGameId =
+                    gameData.id;
+
+                state.config.joinCode =
+                    joinCode;
+
+                state.config.isOnline =
+                    true;
+
+                state.config.onlineRole =
+                    'host';
+
+                /*
+                 * An online lobby uses actual joined players instead of
+                 * the offline placeholder roster.
+                 *
+                 * Start the lobby with only the signed-in host.
+                 */
+                state.config.players = [
+                    {
+                        id: 'lobby_' + currentUser.id,
+                        userId: currentUser.id,
+                        name: currentProfile.display_name,
+                        isGuest: false
+                    }
+                ];
+
+                state.config.playerCount = 1;
+
+
+                saveState();
+                render();
+
+
+                showToast(
+                    `Online lobby ready: ${joinCode}`,
+                    'success'
+                );
+
+                return true;
+            }
+
+
+            showToast(
+                'Could not generate a unique game code.',
+                'danger'
+            );
+
+            return false;
+        }
+
+
+        /**
+        * Mark the current online game as completed in Supabase.
+        */
+        async function completeCurrentCloudGame(cloudGameId) {
+
+            if (!cloudGameId) {
+                return true;
+            }
+
+            const { error } =
+                await supabaseClient
+                    .from('games')
+                    .update({
+                        status: 'completed',
+                        completed_at: new Date().toISOString()
+                    })
+                    .eq('id', cloudGameId);
+
+            if (error) {
+                console.error(
+                    'Could not complete cloud game:',
+                    error
+                );
+
+                showToast(
+                    'The match ended locally, but the online game could not be marked complete.',
+                    'warning'
+                );
+
+                return false;
+            }
+
+            return true;
+        }
+
+
+        /**
+        * Create an online lobby from the Match Setup screen.
+        */
+        async function createSetupOnlineLobby() {
+
+            if (!currentUser || !currentProfile) {
+                showToast(
+                    'Sign in before creating an online lobby.',
+                    'warning'
+                );
+
+                return;
+            }
+
+            /*
+             * Prevent accidentally creating a second lobby.
+             */
+            if (
+                state.config.isOnline &&
+                state.config.onlineGameId
+            ) {
+                showToast(
+                    `Online lobby already active: ${state.config.joinCode}`,
+                    'info'
+                );
+
+                return;
+            }
+
+
+            showToast(
+                'Creating online lobby...',
+                'info'
+            );
+
+
+            const success =
+                await createCloudGame();
+
+
+            if (!success) {
+                return;
+            }
+
+
+            /*
+             * Redraw Setup so the button changes into
+             * the Join Code display.
+             */
+            render();
+        }
+
+
+        /**
+        * Copy the setup lobby's join code.
+        */
+        async function copySetupJoinCode() {
+
+            const code =
+                state.config?.joinCode;
+
+            if (!code) {
+                showToast(
+                    'No join code is available.',
+                    'warning'
+                );
+
+                return;
+            }
+
+
+            try {
+
+                await navigator.clipboard.writeText(
+                    code
+                );
+
+                showToast(
+                    `Join code ${code} copied.`,
+                    'success'
+                );
+
+            } catch (error) {
+
+                console.error(
+                    'Could not copy join code:',
+                    error
+                );
+
+                showToast(
+                    `Join code: ${code}`,
+                    'info'
+                );
+            }
+        }
+
+
+        /**
         * Non-blocking Toast Notification
         */
         function showToast(message, type = 'info') {
@@ -2255,6 +2638,63 @@
         */
         function startMatch() {
             try {
+            /*
+            * Only the host controls the start of an online match.
+            */
+            if (
+                state.config.isOnline &&
+                state.config.onlineRole !== 'host'
+            ) {
+
+                showToast(
+                    'Waiting for the host to start the match.',
+                    'info'
+                );
+
+                return;
+            }
+            /*
+            * Online lobbies must contain at least two actual players.
+            */
+            if (
+                state.config.isOnline &&
+                state.config.players.length < 2
+            ) {
+                showToast(
+                    'At least 2 players must join before starting.',
+                    'warning'
+                );
+
+                return;
+            }
+
+
+            /*
+                * Ring Game supports a maximum of 12 active players.
+                */
+            if (
+                state.config.isOnline &&
+                state.config.players.length > 12
+            ) {
+                showToast(
+                    'Online Ring Game supports up to 12 players.',
+                    'warning'
+                );
+
+                return;
+            }
+            /*
+            * When signed in, Player 1 represents the authenticated
+            * PoolApp account.
+            */
+            if (
+                currentUser &&
+                currentProfile &&
+                state.config.players.length > 0
+            ) {
+                state.config.players[0].name =
+                    currentProfile.display_name;
+            }
             if (!state.config || !Array.isArray(state.config.players) || state.config.players.length < 2) {
                 showToast('Please configure at least 2 players before starting.', 'warning');
                 return;
@@ -2262,13 +2702,31 @@
 
 
             const players = state.config.players.map((p, idx) => ({
+
+                /*
+                    * Local ID used by the Ring Game scoring engine.
+                    */
                 id: p.id || ('p' + (idx + 1)),
-                name: (p.name || '').trim() || `Player ${idx + 1}`,
 
-                // Buy-in elimination status
+                name:
+                    (p.name || '').trim() ||
+                    `Player ${idx + 1}`,
+
+                /*
+                    * Permanent PoolApp identity.
+                    *
+                    * For now only Player 1 automatically receives the
+                    * signed-in user's account identity.
+                    */
+                userId:
+                    idx === 0 && currentUser
+                        ? currentUser.id
+                        : null,
+
+                isGuest:
+                    !(idx === 0 && currentUser),
+
                 eliminated: false,
-
-                // Live player-management status
                 active: true,
                 joinedAtRack: 1,
                 leftAtRack: null,
@@ -2299,6 +2757,9 @@
 
             state.game = {
                 startedAt: new Date().toISOString(),
+                cloudGameId: null,
+                joinCode: null,
+                isOnline: false,
                 rackNumber: 1,
                 players,
                 currentShooterIndex: 0,
@@ -3794,6 +4255,85 @@
                 </div>
 
 
+                <!-- Online Game -->
+                <section class="mb-6">
+
+                  ${
+                state.game.isOnline
+                    ? `
+                        <div class="bg-blue-950/25 border border-blue-500/40 rounded-xl p-4">
+
+                          <div class="flex items-center justify-between gap-3">
+
+                            <div>
+                              <div class="text-[10px] font-bold uppercase tracking-wider text-blue-300">
+                                Online Game
+                              </div>
+
+                              <div class="text-xs text-slate-400 mt-1">
+                                Join Code
+                              </div>
+
+                              <div class="font-mono font-extrabold text-2xl tracking-[0.18em] text-white mt-1">
+                                ${escapeHTML(state.game.joinCode || '')}
+                              </div>
+                            </div>
+
+                            <button
+                              onclick="copyGameJoinCode()"
+                              class="shrink-0 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition"
+                            >
+                              Copy Code
+                            </button>
+
+                          </div>
+
+                          <p class="text-[11px] text-slate-400 mt-3">
+                            Registered players will soon be able to use this code
+                            or scan a QR code to join this match.
+                          </p>
+
+                        </div>
+                      `
+                    : currentUser
+                        ? `
+                          <div class="bg-slatefelt-950 border border-slatefelt-700 rounded-xl p-4">
+
+                            <div class="text-sm font-bold text-white">
+                              Play Online
+                            </div>
+
+                            <p class="text-xs text-slate-400 mt-1 mb-3">
+                              Create an online match so other PoolApp users can join.
+                            </p>
+
+                            <button
+                              onclick="makeCurrentGameOnline()"
+                              class="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-sm transition"
+                            >
+                              Make This Game Online
+                            </button>
+
+                          </div>
+                        `
+                        : `
+                          <div class="bg-slatefelt-950 border border-slatefelt-700 rounded-xl p-4">
+
+                            <div class="text-sm font-bold text-white">
+                              Online Game
+                            </div>
+
+                            <p class="text-xs text-slate-400 mt-1">
+                              Sign in to create a joinable online match.
+                            </p>
+
+                          </div>
+                        `
+                  }
+
+                </section>
+
+
                 <!-- Active Players -->
                 <section class="mb-6">
 
@@ -3915,6 +4455,440 @@
 
             </div>
             `);
+        }
+
+        /**
+        * Convert the current local Ring Game into an online game.
+        */
+        async function makeCurrentGameOnline() {
+
+            if (!state.game) return;
+
+            if (state.game.isOnline) {
+                openManagePlayersModal();
+                return;
+            }
+
+            if (!currentUser || !currentProfile) {
+                showToast(
+                    'Sign in before creating an online game.',
+                    'warning'
+                );
+
+                return;
+            }
+
+            showToast(
+                'Creating online game...',
+                'info'
+            );
+
+            const success =
+                await createCloudGame();
+
+            if (!success) {
+                return;
+            }
+
+            render();
+
+            openManagePlayersModal();
+        }
+
+
+        /**
+         * Copy the current game's join code.
+         */
+        async function copyGameJoinCode() {
+
+            const code =
+                state.game?.joinCode;
+
+            if (!code) {
+                showToast(
+                    'No join code is available.',
+                    'warning'
+                );
+
+                return;
+            }
+
+            try {
+
+                await navigator.clipboard.writeText(
+                    code
+                );
+
+                showToast(
+                    `Join code ${code} copied.`,
+                    'success'
+                );
+
+            } catch (error) {
+
+                console.error(
+                    'Could not copy join code:',
+                    error
+                );
+
+                showToast(
+                    `Join code: ${code}`,
+                    'info'
+                );
+            }
+        }
+
+
+        /**
+        * Join an existing online lobby using its six-character code.
+        */
+        async function joinOnlineGameByCode() {
+
+            if (!currentUser || !currentProfile) {
+
+                showToast(
+                    'Sign in before joining an online game.',
+                    'warning'
+                );
+
+                return;
+            }
+
+
+            const input =
+                document.getElementById(
+                    'join-game-code'
+                );
+
+            const joinCode =
+                (input?.value || '')
+                    .trim()
+                    .toUpperCase();
+
+
+            if (joinCode.length !== 6) {
+
+                showToast(
+                    'Enter the 6-character join code.',
+                    'warning'
+                );
+
+                return;
+            }
+
+
+            showToast(
+                'Finding game...',
+                'info'
+            );
+
+
+            /*
+             * Find a waiting game with this code.
+             */
+            const {
+                data: gameData,
+                error: gameError
+            } =
+                await supabaseClient
+                    .from('games')
+                    .select('*')
+                    .eq(
+                        'join_code',
+                        joinCode
+                    )
+                    .eq(
+                        'status',
+                        'waiting'
+                    )
+                    .maybeSingle();
+
+
+            if (gameError) {
+
+                console.error(
+                    'Could not find online game:',
+                    gameError
+                );
+
+                showToast(
+                    'Could not look up that game.',
+                    'danger'
+                );
+
+                return;
+            }
+
+
+            if (!gameData) {
+
+                showToast(
+                    'No waiting game was found with that code.',
+                    'warning'
+                );
+
+                return;
+            }
+
+
+            /*
+             * Load the existing lobby roster.
+             */
+            const {
+                data: existingPlayers,
+                error: playersError
+            } =
+                await supabaseClient
+                    .from('game_players')
+                    .select('*')
+                    .eq(
+                        'game_id',
+                        gameData.id
+                    )
+                    .eq(
+                        'status',
+                        'active'
+                    )
+                    .order(
+                        'shooting_order',
+                        {
+                            ascending: true
+                        }
+                    );
+
+
+            if (playersError) {
+
+                console.error(
+                    'Could not load lobby players:',
+                    playersError
+                );
+
+                showToast(
+                    'Could not load the game lobby.',
+                    'danger'
+                );
+
+                return;
+            }
+
+
+            /*
+             * Don't allow more than 12 players.
+             */
+            if (existingPlayers.length >= 12) {
+
+                showToast(
+                    'That game already has 12 players.',
+                    'warning'
+                );
+
+                return;
+            }
+
+
+            /*
+             * Don't join twice.
+             */
+            const alreadyJoined =
+                existingPlayers.some(
+                    player =>
+                        player.user_id ===
+                        currentUser.id
+                );
+
+
+            if (alreadyJoined) {
+
+                showToast(
+                    'You have already joined this game.',
+                    'info'
+                );
+
+                await loadOnlineLobbyRoster(
+                    gameData.id
+                );
+
+                state.config.onlineGameId =
+                    gameData.id;
+
+                state.config.joinCode =
+                    gameData.join_code;
+
+                state.config.isOnline =
+                    true;
+
+                state.config.onlineRole =
+                    gameData.host_id === currentUser.id
+                        ? 'host'
+                        : 'player';
+
+                saveState();
+                render();
+
+                return;
+            }
+
+
+            /*
+             * New player goes at the end of the current order.
+             */
+            const shootingOrder =
+                existingPlayers.length + 1;
+
+
+            const {
+                error: insertError
+            } =
+                await supabaseClient
+                    .from('game_players')
+                    .insert({
+
+                        game_id:
+                            gameData.id,
+
+                        user_id:
+                            currentUser.id,
+
+                        display_name:
+                            currentProfile.display_name,
+
+                        shooting_order:
+                            shootingOrder,
+
+                        status:
+                            'active'
+
+                    });
+
+
+            if (insertError) {
+
+                console.error(
+                    'Could not join online game:',
+                    insertError
+                );
+
+                showToast(
+                    'Could not join the game.',
+                    'danger'
+                );
+
+                return;
+            }
+
+
+            /*
+             * This phone is now attached to that lobby.
+             */
+            state.config.onlineGameId =
+                gameData.id;
+
+            state.config.joinCode =
+                gameData.join_code;
+
+            state.config.isOnline =
+                true;
+
+            state.config.onlineRole =
+                gameData.host_id === currentUser.id
+                    ? 'host'
+                    : 'player';
+
+
+            /*
+             * Pull the authoritative lobby roster from Supabase.
+             */
+            await loadOnlineLobbyRoster(
+                gameData.id
+            );
+
+
+            saveState();
+
+            render();
+
+
+            showToast(
+                `Joined game ${joinCode}.`,
+                'success'
+            );
+        }
+
+        /**
+        * Load the current online lobby roster from Supabase.
+        */
+        async function loadOnlineLobbyRoster(gameId) {
+
+            if (!gameId) {
+                return false;
+            }
+
+
+            const {
+                data,
+                error
+            } =
+                await supabaseClient
+                    .from('game_players')
+                    .select('*')
+                    .eq(
+                        'game_id',
+                        gameId
+                    )
+                    .eq(
+                        'status',
+                        'active'
+                    )
+                    .order(
+                        'shooting_order',
+                        {
+                            ascending: true
+                        }
+                    );
+
+
+            if (error) {
+
+                console.error(
+                    'Could not load online lobby roster:',
+                    error
+                );
+
+                return false;
+            }
+
+
+            state.config.players =
+                data.map(player => ({
+
+                    /*
+                     * game_players.id is ideal as the lobby ID
+                     * because it uniquely identifies this person's
+                     * participation in this particular match.
+                     */
+                    id:
+                        player.id,
+
+                    userId:
+                        player.user_id,
+
+                    name:
+                        player.display_name,
+
+                    isGuest:
+                        !player.user_id
+
+                }));
+
+
+            state.config.playerCount =
+                state.config.players.length;
+
+
+            saveState();
+
+            return true;
         }
 
 
@@ -4356,6 +5330,342 @@
                 `${newPlayer.name} jo*ned the game!`,
                 'success'
                 );
+        }
+
+
+        function openSetupGuestModal() {
+
+            if (
+                !state.config.isOnline ||
+                !state.config.onlineGameId
+            ) {
+                return;
+            }
+
+            if (state.config.players.length >= 12) {
+                showToast(
+                    'This lobby already has 12 players.',
+                    'warning'
+                );
+                return;
+            }
+
+            openModal(`
+                <div class="p-5 sm:p-6">
+
+                    <div class="flex items-start justify-between gap-4 mb-5">
+
+                        <div>
+                            <div class="text-[11px] font-bold uppercase tracking-wider text-amber-400 mb-1">
+                                Online Lobby
+                            </div>
+
+                            <h2 class="text-xl font-extrabold text-white">
+                                Add Guest
+                            </h2>
+                        </div>
+
+                        <button
+                            onclick="closeModal()"
+                            class="w-9 h-9 rounded-xl bg-slatefelt-800 border border-slatefelt-700 text-slate-300 font-bold"
+                        >
+                            ✕
+                        </button>
+
+                    </div>
+
+                    <label class="block text-xs text-slate-400 font-semibold mb-2">
+                        Guest Name
+                    </label>
+
+                    <input
+                        id="setup-guest-name"
+                        type="text"
+                        maxlength="30"
+                        placeholder="Enter player name"
+                        class="w-full bg-slatefelt-950 border border-slatefelt-700 rounded-xl px-3 py-2.5 text-sm text-white"
+                    />
+
+                    <button
+                        onclick="addGuestToOnlineLobby()"
+                        class="w-full mt-3 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-sm transition"
+                    >
+                        Add Guest
+                    </button>
+
+                </div>
+            `);
+        }
+
+
+        async function addGuestToOnlineLobby() {
+
+            const input =
+                document.getElementById('setup-guest-name');
+
+            const name =
+                input?.value.trim() || '';
+
+            if (!name) {
+                showToast(
+                    'Enter a guest name.',
+                    'warning'
+                );
+                return;
+            }
+
+            if (state.config.players.length >= 12) {
+                showToast(
+                    'This lobby already has 12 players.',
+                    'warning'
+                );
+                return;
+            }
+
+            const duplicate =
+                state.config.players.some(
+                    player =>
+                        player.name.toLowerCase() ===
+                        name.toLowerCase()
+                );
+
+            if (duplicate) {
+                showToast(
+                    `${name} is already in the lobby.`,
+                    'warning'
+                );
+                return;
+            }
+
+
+            const shootingOrder =
+                state.config.players.length + 1;
+
+
+            const {
+                data,
+                error
+            } =
+                await supabaseClient
+                    .from('game_players')
+                    .insert({
+                        game_id:
+                            state.config.onlineGameId,
+
+                        user_id:
+                            null,
+
+                        display_name:
+                            name,
+
+                        shooting_order:
+                            shootingOrder,
+
+                        status:
+                            'active'
+                    })
+                    .select()
+                    .single();
+
+
+            if (error) {
+
+                console.error(
+                    'Could not add guest:',
+                    error
+                );
+
+                showToast(
+                    'Could not add guest to the online lobby.',
+                    'danger'
+                );
+
+                return;
+            }
+
+
+            state.config.players.push({
+                id:
+                    data.id,
+
+                userId:
+                    null,
+
+                name:
+                    data.display_name,
+
+                isGuest:
+                    true
+            });
+
+
+            state.config.playerCount =
+                state.config.players.length;
+
+
+            saveState();
+
+            closeModal();
+
+            render();
+
+
+            showToast(
+                `${name} added to the lobby.`,
+                'success'
+            );
+        }
+
+
+        function confirmAbandonOnlineLobby() {
+
+            if (
+                !state.config.isOnline ||
+                !state.config.onlineGameId
+            ) {
+                return;
+            }
+
+            openModal(`
+                <div class="p-5 sm:p-6">
+
+                    <div class="text-[11px] font-bold uppercase tracking-wider text-rose-400 mb-1">
+                        Online Lobby
+                    </div>
+
+                    <h2 class="text-xl font-extrabold text-white">
+                        Abandon Lobby?
+                    </h2>
+
+                    <p class="text-sm text-slate-400 mt-2 leading-relaxed">
+                        This lobby has not started yet.
+                        The join code will be closed and this game
+                        will be marked as cancelled.
+                    </p>
+
+                    <div class="flex gap-2 mt-5">
+
+                        <button
+                            onclick="closeModal()"
+                            class="flex-1 py-2.5 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-700 text-slate-300 font-bold"
+                        >
+                            Keep Lobby
+                        </button>
+
+                        <button
+                            onclick="abandonOnlineLobby()"
+                            class="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold"
+                        >
+                            Abandon
+                        </button>
+
+                    </div>
+
+                </div>
+            `);
+        }
+
+
+        async function abandonOnlineLobby() {
+
+            const gameId =
+                state.config.onlineGameId;
+
+            if (!gameId) {
+                closeModal();
+                return;
+            }
+
+
+            /*
+             * Mark the cloud lobby cancelled rather than completed.
+             *
+             * completed = a match was actually played.
+             * cancelled = lobby was abandoned before play began.
+             */
+            const { error } =
+                await supabaseClient
+                    .from('games')
+                    .update({
+                        status: 'cancelled',
+                        completed_at: new Date().toISOString()
+                    })
+                    .eq('id', gameId);
+
+
+            if (error) {
+
+                console.error(
+                    'Could not abandon online lobby:',
+                    error
+                );
+
+                showToast(
+                    'Could not abandon the online lobby.',
+                    'danger'
+                );
+
+                return;
+            }
+
+
+            /*
+             * Return setup to normal offline mode.
+             */
+            state.config.isOnline = false;
+            state.config.onlineGameId = null;
+            state.config.joinCode = null;
+            state.config.onlineRole = null;
+
+
+            /*
+             * Restore a normal four-player offline setup.
+             */
+            state.config.playerCount = 4;
+
+            state.config.players = [
+                {
+                    id: 'p1',
+
+                    name:
+                        currentProfile?.display_name ||
+                        'Player 1',
+
+                    userId:
+                        currentUser?.id || null,
+
+                    isGuest:
+                        !currentUser
+                },
+
+                {
+                    id: 'p2',
+                    name: 'Player 2'
+                },
+
+                {
+                    id: 'p3',
+                    name: 'Player 3'
+                },
+
+                {
+                    id: 'p4',
+                    name: 'Player 4'
+                }
+            ];
+
+
+            saveState();
+
+            closeModal();
+
+            render();
+
+
+            showToast(
+                'Online lobby abandoned.',
+                'info'
+            );
         }
 
 
@@ -5034,13 +6344,81 @@
         }
 
 
-        function resetToSetup() {
-            closeModal();
-            state.view = 'setup';
+        async function resetToSetup() {
+
+            /*
+             * Capture the cloud ID before clearing state.game.
+             */
+            const cloudGameId =
+                state.game?.cloudGameId ||
+                state.config?.onlineGameId ||
+                null;
+
+
+            /*
+             * Mark the online database record completed.
+             */
+            if (cloudGameId) {
+                await completeCurrentCloudGame(
+                    cloudGameId
+                );
+            }
+
+
+            /*
+             * Remove the completed local match.
+             */
             state.game = null;
+
+            state.view = 'setup';
+
+            activeTab = 'table';
+
+
+            /*
+             * Clear the old online lobby.
+             *
+             * This is the part that prevents the next game from
+             * automatically reusing the previous lobby.
+             */
+            state.config.isOnline = false;
+
+            state.config.onlineGameId = null;
+
+            state.config.joinCode = null;
+
+            state.config.onlineRole = null;
+
+            /*
+             * Restore the signed-in user as Player 1.
+             */
+            if (
+                currentUser &&
+                currentProfile &&
+                state.config.players.length > 0
+            ) {
+                state.config.players[0].name =
+                    currentProfile.display_name;
+
+                state.config.players[0].userId =
+                    currentUser.id;
+
+                state.config.players[0].isGuest =
+                    false;
+            }
+
+
             saveState();
+
+            closeModal();
+
             render();
-            showToast('Returned to game setup.', 'info');
+
+
+            showToast(
+                'Match completed.',
+                'success'
+            );
         }
 
 
@@ -5392,24 +6770,183 @@
                 </p>
                 </div>
 
+                <!-- Online Lobby -->
+                <section class="bg-slatefelt-900 border border-slatefelt-700/80 rounded-2xl p-5 shadow-lg mb-5">
+
+                  ${
+                    cfg.isOnline
+                        ? `
+                        <div class="flex flex-wrap items-center justify-between gap-4">
+
+                            <div>
+                            <div class="text-[11px] font-bold uppercase tracking-wider text-blue-400">
+                                Online Lobby
+                            </div>
+
+                            <h3 class="text-base font-bold text-white mt-1">
+                                Players can join before the match starts
+                            </h3>
+
+                            <div class="text-xs text-slate-400 mt-2">
+                                Join Code
+                            </div>
+
+                            <div class="font-mono font-extrabold text-2xl tracking-[0.18em] text-white mt-1">
+                                ${escapeHTML(cfg.joinCode || '')}
+                            </div>
+                            </div>
+
+                            <button
+                            onclick="copySetupJoinCode()"
+                            class="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold transition"
+                            >
+                            Copy Code
+                            </button>
+
+                        </div>
+
+                        <p class="text-xs text-slate-400 mt-3">
+                            Keep this screen open while players join.
+                            Set or randomize the shooting order before starting the match.
+                        </p>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">
+                          <button
+                            onclick="openSetupGuestModal()"
+                            ${cfg.players.length >= 12 ? 'disabled' : ''}
+                            class="py-2.5 px-3 rounded-xl bg-amber-600/20 hover:bg-amber-600/30 disabled:opacity-40 disabled:pointer-events-none border border-amber-500/40 text-amber-300 text-sm font-bold transition"
+                          >
+                            + Add Guest
+                          </button>
+
+                          <button
+                            onclick="confirmAbandonOnlineLobby()"
+                            class="py-2.5 px-3 rounded-xl bg-rose-950/40 hover:bg-rose-900/50 border border-rose-500/40 text-rose-300 text-sm font-bold transition"
+                          >
+                            Abandon Lobby
+                          </button>
+                        </div>
+                        `
+
+                    : currentUser
+                        ? `
+                        <div class="space-y-4">
+
+                          <div class="flex flex-wrap items-center justify-between gap-4">
+
+                            <div>
+
+                              <div class="text-[11px] font-bold uppercase tracking-wider text-blue-400">
+                                Online Game
+                              </div>
+
+                              <h3 class="text-base font-bold text-white mt-1">
+                                Play With Other PoolApp Users
+                              </h3>
+
+                              <p class="text-xs text-slate-400 mt-1">
+                                Create a new lobby or join an existing game.
+                              </p>
+
+                            </div>
+
+
+                            <button
+                              onclick="createSetupOnlineLobby()"
+                              class="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold transition"
+                            >
+                              Create Online Lobby
+                            </button>
+
+                          </div>
+
+
+                          <div class="border-t border-slatefelt-700 pt-4">
+
+                            <div class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                              Join Existing Game
+                            </div>
+
+
+                            <div class="flex gap-2">
+
+                              <input
+                                id="join-game-code"
+                                type="text"
+                                maxlength="6"
+                                placeholder="ABC123"
+                                oninput="this.value = this.value.toUpperCase()"
+                                class="flex-1 min-w-0 bg-slatefelt-950 border border-slatefelt-700 rounded-xl px-3 py-2.5 text-white font-mono font-extrabold uppercase tracking-widest"
+                              />
+
+
+                              <button
+                                onclick="joinOnlineGameByCode()"
+                                class="shrink-0 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-sm font-extrabold transition"
+                              >
+                                Join Game
+                              </button>
+
+                            </div>
+
+                          </div>
+
+                        </div>
+                      `
+
+                    : `
+                        <div>
+                        <div class="text-[11px] font-bold uppercase tracking-wider text-blue-400">
+                            Online Game
+                        </div>
+
+                        <div class="text-sm font-bold text-white mt-1">
+                            Sign in to create an online lobby
+                        </div>
+                        </div>
+                    `
+                    }
+
+                </section>
 
                 <section class="bg-slatefelt-900 border border-slatefelt-700/80 rounded-2xl p-5 shadow-lg space-y-4">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <div>
                     <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-400">Step 1</span>
-                    <h3 class="text-base font-bold text-white">Players & Shooting Rotation</h3>
+                    <h3 class="text-base font-bold text-white">
+                      ${
+                        cfg.isOnline
+                            ? 'Lobby & Shooting Order'
+                            : 'Players & Shooting Rotation'
+                      }
+                    </h3>
                     </div>
 
+                    ${!cfg.isOnline ? `
+                      <div class="flex items-center gap-1.5 bg-slatefelt-950 p-1 rounded-xl border border-slatefelt-700/80 overflow-x-auto whitespace-nowrap">
 
-                    <div class="flex items-center gap-1.5 bg-slatefelt-950 p-1 rounded-xl border border-slatefelt-700/80 overflow-x-auto whitespace-nowrap">
-                    ${[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(n => `
-                        <button
-                        onclick="setPlayerCount(${n})"
-                        class="w-8 h-8 flex-none rounded-lg text-xs font-bold transition ${cfg.playerCount === n ? 'bg-emerald-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white hover:bg-slatefelt-800'}">
-                        ${n}
-                        </button>
-                    `).join('')}
-                    </div>
+                        ${[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(n => `
+                          <button
+                            onclick="setPlayerCount(${n})"
+                            class="w-8 h-8 flex-none rounded-lg text-xs font-bold transition ${cfg.playerCount === n
+                                ? 'bg-emerald-500 text-slate-950 shadow'
+                                : 'text-slate-400 hover:text-white hover:bg-slatefelt-800'
+                            }"
+                          >
+                            ${n}
+                          </button>
+                        `).join('')}
+
+                      </div>
+
+                    ` : `
+
+                      <div class="px-3 py-2 rounded-xl bg-blue-950/25 border border-blue-500/30 text-xs text-blue-300 font-bold whitespace-nowrap">
+                        ${cfg.players.length} / 12 Joined
+                      </div>
+
+                    `}
+
                 </div>
 
 
