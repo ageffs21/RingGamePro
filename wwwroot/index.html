@@ -1715,7 +1715,7 @@
         const STORAGE_KEY = 'ringgame_pro_state_v1';
 
 
-        const APP_VERSION = '0.5.1';
+        const APP_VERSION = '0.5.2';
 
 
         /**
@@ -1858,19 +1858,27 @@
 
 
             /*
-             * When signed in, automatically use the permanent
-             * PoolApp display name for Player 1 during setup.
+             * During ordinary offline setup, Player 1 represents
+             * the signed-in user.
              *
-             * Only do this while still on the setup screen.
+             * Do NOT modify the roster during an online lobby.
+             * Supabase game_players is authoritative in online mode.
              */
             if (
                 currentProfile &&
                 state.view === 'setup' &&
+                !state.config.isOnline &&
                 Array.isArray(state.config.players) &&
                 state.config.players.length > 0
             ) {
                 state.config.players[0].name =
                     currentProfile.display_name;
+
+                state.config.players[0].userId =
+                    currentUser.id;
+
+                state.config.players[0].isGuest =
+                    false;
 
                 saveState();
             }
@@ -2900,18 +2908,7 @@
 
                 return;
             }
-            /*
-            * When signed in, Player 1 represents the authenticated
-            * PoolApp account.
-            */
-            if (
-                currentUser &&
-                currentProfile &&
-                state.config.players.length > 0
-            ) {
-                state.config.players[0].name =
-                    currentProfile.display_name;
-            }
+
             if (!state.config || !Array.isArray(state.config.players) || state.config.players.length < 2) {
                 showToast('Please configure at least 2 players before starting.', 'warning');
                 return;
@@ -2923,31 +2920,31 @@
                 /*
                     * Local ID used by the Ring Game scoring engine.
                     */
-                id: p.id || ('p' + (idx + 1)),
+                id:
+                    p.id || ('p' + (idx + 1)),
 
                 name:
                     (p.name || '').trim() ||
                     `Player ${idx + 1}`,
 
                 /*
-                    * Permanent PoolApp identity.
+                    * Preserve the permanent PoolApp identity from
+                    * the setup/lobby roster.
                     *
-                    * For now only Player 1 automatically receives the
-                    * signed-in user's account identity.
+                    * Shooting order must never determine identity.
                     */
                 userId:
-                    idx === 0 && currentUser
-                        ? currentUser.id
-                        : null,
+                    p.userId || null,
 
                 isGuest:
-                    !(idx === 0 && currentUser),
+                    p.isGuest === true,
 
                 eliminated: false,
                 active: true,
                 joinedAtRack: 1,
                 leftAtRack: null,
                 settledOnExit: false
+
             }));
 
 
@@ -2974,9 +2971,9 @@
 
             state.game = {
                 startedAt: new Date().toISOString(),
-                cloudGameId: null,
-                joinCode: null,
-                isOnline: false,
+                cloudGameId: state.config.onlineGameId || null,
+                joinCode: state.config.joinCode || null,
+                isOnline: state.config.isOnline === true,
                 rackNumber: 1,
                 players,
                 currentShooterIndex: 0,
@@ -5152,68 +5149,8 @@
 
 
         /**
-        * Listen for player changes in the current online lobby.
-        */
-        async function subscribeToOnlineLobby(gameId) {
-
-            if (!gameId) {
-                return;
-            }
-
-            /*
-             * Remove an existing lobby subscription first.
-             */
-            if (onlineLobbyChannel) {
-
-                await supabaseClient.removeChannel(
-                    onlineLobbyChannel
-                );
-
-                onlineLobbyChannel = null;
-            }
-
-
-            onlineLobbyChannel =
-                supabaseClient
-                    .channel(
-                        'online-lobby-' + gameId
-                    )
-                    .on(
-                        'postgres_changes',
-                        {
-                            event: '*',
-                            schema: 'public',
-                            table: 'game_players',
-                            filter: 'game_id=eq.' + gameId
-                        },
-                        async () => {
-
-                            /*
-                             * Something changed in game_players.
-                             * Reload the entire lobby roster.
-                             */
-                            await loadOnlineLobbyRoster(
-                                gameId
-                            );
-
-                            render();
-                        }
-                    )
-                    .subscribe(status => {
-
-                        console.log(
-                            'Online lobby subscription:',
-                            status
-                        );
-
-                    });
-        }
-
-
-        /**
         * Restore the current online lobby after the app loads
         * or returns from the background.
-        *
         * Supabase is authoritative for the lobby roster.
         */
         async function restoreOnlineLobby() {
@@ -5747,10 +5684,10 @@
                 */
             openManagePlayersModal();
 
-            s * owToast(
-                `${newPlayer.name} jo*ned the game!`,
+            showToast(
+                `${newPlayer.name} joined the game!`,
                 'success'
-                );
+            );
         }
 
 
@@ -8296,6 +8233,7 @@
                 }
             }
         }
+
 
         document.getElementById('modal-backdrop').addEventListener('click', (e) => {
             if (e.target.id === 'modal-backdrop') {
