@@ -5256,6 +5256,48 @@
         }
 
 
+        async function refreshLobbyPlayers() {
+
+            const gameId =
+                state.config.onlineGameId;
+
+            if (!gameId) {
+
+                showToast(
+                    'No online lobby is active.',
+                    'warning'
+                );
+
+                return;
+            }
+
+
+            const success =
+                await loadOnlineLobbyRoster(
+                    gameId
+                );
+
+
+            if (!success) {
+
+                showToast(
+                    'Could not refresh lobby.',
+                    'danger'
+                );
+
+                return;
+            }
+
+
+            render();
+
+
+            showToast(
+                `${state.config.players.length} players in lobby.`,
+                'success'
+            );
+        }
+
         /**
         * Restore the current online lobby after the app loads
         * or returns from the background.
@@ -7262,12 +7304,23 @@
                             </div>
                             </div>
 
-                            <button
-                            onclick="copySetupJoinCode()"
-                            class="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold transition"
-                            >
-                            Copy Code
-                            </button>
+                            <div class="flex flex-col sm:flex-row gap-2">
+
+                              <button
+                                onclick="copySetupJoinCode()"
+                                class="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold transition"
+                              >
+                                Copy Code
+                              </button>
+
+                              <button
+                                onclick="refreshLobbyPlayers()"
+                                class="px-4 py-2.5 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-600 text-white text-sm font-bold transition"
+                              >
+                                Refresh Players
+                              </button>
+
+                            </div>
 
                         </div>
 
