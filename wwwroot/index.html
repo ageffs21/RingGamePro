@@ -4905,23 +4905,9 @@
 
             if (alreadyJoined) {
 
-                showToast(
-                    'You have already joined this game.',
-                    'info'
-                );
-
-                await loadOnlineLobbyRoster(
-                    gameData.id
-                );
-
-                await subscribeToOnlineLobby(
-                    gameData.id
-                );
-
-                await subscribeToOnlineGame(
-                    gameData.id
-                );
-
+                /*
+                 * Attach this phone to the existing lobby first.
+                 */
                 state.config.onlineGameId =
                     gameData.id;
 
@@ -4936,8 +4922,40 @@
                         ? 'host'
                         : 'player';
 
+
+                /*
+                 * Then load the authoritative roster.
+                 */
+                await loadOnlineLobbyRoster(
+                    gameData.id
+                );
+
+
+                /*
+                 * Listen for future roster changes.
+                 */
+                await subscribeToOnlineLobby(
+                    gameData.id
+                );
+
+
+                /*
+                 * Listen for the host starting/completing the game.
+                 */
+                await subscribeToOnlineGame(
+                    gameData.id
+                );
+
+
                 saveState();
+
                 render();
+
+
+                showToast(
+                    'You have already joined this game.',
+                    'info'
+                );
 
                 return;
             }
@@ -5016,6 +5034,22 @@
                 gameData.id
             );
 
+            /*
+            * Listen for future players joining, leaving,
+            * or being added by the host.
+            */
+            await subscribeToOnlineLobby(
+                gameData.id
+            );
+
+
+            /*
+             * Listen for changes to the game itself,
+             * such as the host starting the match.
+             */
+            await subscribeToOnlineGame(
+                gameData.id
+            );
 
             saveState();
 
@@ -8155,28 +8189,79 @@
         });
 
         /*
-        * ---------------------------------------------------------
-        * INITIAL APPLICATION STARTUP
-        * ---------------------------------------------------------
-        */
+         * ---------------------------------------------------------
+         * INITIAL APPLICATION STARTUP
+         * ---------------------------------------------------------
+         */
+
+        /*
+         * Show the interface immediately.
+         */
         render();
 
+
+        /*
+         * Restore any existing Supabase login session.
+         *
+         * loadCurrentUser() already loads the user's profile,
+         * so we do not create/check the profile a second time here.
+         */
         loadCurrentUser();
 
+
+        /*
+         * React only to actual authentication changes.
+         */
         supabaseClient.auth.onAuthStateChange(
             async (event, session) => {
 
-                currentUser =
-                    session?.user || null;
+                console.log(
+                    'Auth state changed:',
+                    event
+                );
 
-                if (currentUser) {
-                    await ensureCurrentUserProfile();
-                    await loadCurrentProfile();
-                } else {
+
+                /*
+                 * User signed out.
+                 */
+                if (event === 'SIGNED_OUT') {
+
+                    currentUser = null;
                     currentProfile = null;
+
+                    render();
+
+                    return;
                 }
 
-                render();
+
+                /*
+                 * User signed in or returned from an authentication flow.
+                 */
+                if (event === 'SIGNED_IN') {
+
+                    currentUser =
+                        session?.user || null;
+
+                    if (currentUser) {
+
+                        await loadCurrentProfile();
+
+
+                        /*
+                         * Only create a profile if one truly does
+                         * not exist after loading it.
+                         */
+                        if (!currentProfile) {
+
+                            await ensureCurrentUserProfile();
+
+                            await loadCurrentProfile();
+                        }
+                    }
+
+                    render();
+                }
             }
         );
 
