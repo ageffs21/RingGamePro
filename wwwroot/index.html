@@ -2327,34 +2327,45 @@
         /**
         * Mark the current online game as completed in Supabase.
         */
-        async function completeCurrentCloudGame(cloudGameId) {
+        async function completeCurrentCloudGame(
+            cloudGameId,
+            finalGameState
+        ) {
 
             if (!cloudGameId) {
                 return true;
             }
+
 
             const { error } =
                 await supabaseClient
                     .from('games')
                     .update({
                         status: 'completed',
-                        completed_at: new Date().toISOString()
+                        completed_at: new Date().toISOString(),
+                        game_state: finalGameState
                     })
-                    .eq('id', cloudGameId);
+                    .eq(
+                        'id',
+                        cloudGameId
+                    );
+
 
             if (error) {
+
                 console.error(
                     'Could not complete cloud game:',
                     error
                 );
 
                 showToast(
-                    'The match ended locally, but the online game could not be marked complete.',
+                    'Match ended locally, but the online game could not be marked complete.',
                     'warning'
                 );
 
                 return false;
             }
+
 
             return true;
         }
@@ -2647,8 +2658,21 @@
                             );
 
 
-                            const updatedGame =
+                        const updatedGame =
                                 payload.new;
+
+
+                        if (
+                            updatedGame.status === 'completed' &&
+                            state.config.onlineRole === 'player'
+                        ) {
+
+                            await handleCompletedOnlineGame(
+                                updatedGame
+                            );
+
+                            return;
+                        }
 
 
                         /*
@@ -2708,8 +2732,18 @@
 
 
                             /*
-                            * Always use the host's newest authoritative game state.
-                            */
+                             * Remember the tab the participant is currently viewing.
+                             *
+                             * Live cloud updates should refresh the data without
+                             * forcing the participant back to the Live Table.
+                             */
+                            const currentViewingTab =
+                                activeTab;
+
+
+                            /*
+                             * Apply the host's newest authoritative game state.
+                             */
                             state.game =
                                 updatedGame.game_state;
 
@@ -2728,8 +2762,18 @@
                             state.view =
                                 'live';
 
+
+                            /*
+                             * Only force Live Table when entering the match for
+                             * the first time.
+                             *
+                             * After that, preserve whichever viewing tab the
+                             * participant selected.
+                             */
                             activeTab =
-                                'table';
+                                isEnteringLiveGame
+                                    ? 'table'
+                                    : currentViewingTab;
 
 
                             saveState();
@@ -6926,6 +6970,187 @@
         }
 
 
+        async function handleCompletedOnlineGame(
+            updatedGame
+        ) {
+
+            const finalGameState =
+                updatedGame.game_state ||
+                state.game;
+
+
+            if (!finalGameState) {
+                return;
+            }
+
+
+            /*
+             * Store the final state long enough to calculate
+             * and display the participant's settlement.
+             */
+            state.game =
+                finalGameState;
+
+
+            const currentParticipant =
+                state.game.players.find(
+                    player =>
+                        player.userId ===
+                        currentUser?.id
+                );
+
+
+            const simplified =
+                getSimplifiedSettlements();
+
+
+            /*
+             * Disconnect from the completed cloud match.
+             */
+            if (onlineLobbyChannel) {
+
+                await supabaseClient.removeChannel(
+                    onlineLobbyChannel
+                );
+
+                onlineLobbyChannel = null;
+            }
+
+
+            if (onlineGameChannel) {
+
+                await supabaseClient.removeChannel(
+                    onlineGameChannel
+                );
+
+                onlineGameChannel = null;
+            }
+
+
+            /*
+             * Return this device to normal setup BEFORE the
+             * final settlement receipt is displayed.
+             */
+            state.game = null;
+
+            state.view = 'setup';
+
+            activeTab = 'table';
+
+            state.config.isOnline = false;
+            state.config.onlineGameId = null;
+            state.config.joinCode = null;
+            state.config.onlineRole = null;
+
+            state.config.playerCount = 4;
+
+            state.config.players = [
+                {
+                    id: 'p1',
+                    name:
+                        currentProfile?.display_name ||
+                        'Player 1',
+                    userId:
+                        currentUser?.id || null,
+                    isGuest:
+                        !currentUser
+                },
+                {
+                    id: 'p2',
+                    name: 'Player 2',
+                    userId: null,
+                    isGuest: true
+                },
+                {
+                    id: 'p3',
+                    name: 'Player 3',
+                    userId: null,
+                    isGuest: true
+                },
+                {
+                    id: 'p4',
+                    name: 'Player 4',
+                    userId: null,
+                    isGuest: true
+                }
+            ];
+
+
+            saveState();
+
+            render();
+
+
+            openModal(`
+                <div class="p-5 sm:p-6">
+
+                    <div class="text-[11px] font-bold uppercase tracking-wider text-emerald-400 mb-1">
+                        Match Complete
+                    </div>
+
+                    <h2 class="text-xl font-extrabold text-white">
+                        Final Settlement
+                    </h2>
+
+                    ${currentParticipant
+                    ? `
+                                <div class="mt-4 rounded-xl bg-slatefelt-950 border border-slatefelt-700 p-4">
+
+                                    <div class="text-xs uppercase tracking-wider text-slate-500 font-bold">
+                                        ${escapeHTML(currentParticipant.name)}
+                                    </div>
+
+                                    <div class="text-sm text-slate-300 mt-1">
+                                        The host has ended the match.
+                                    </div>
+
+                                </div>
+                              `
+                    : ''
+                }
+
+
+                    ${simplified.length === 0
+                    ? `
+                                <div class="mt-4 rounded-xl bg-slatefelt-850 border border-slatefelt-700 p-4 text-sm text-emerald-300">
+                                    Everyone is square. No remaining payments are required.
+                                </div>
+                              `
+                    : `
+                                <div class="space-y-2 mt-4">
+
+                                    ${simplified.map(item => `
+                                        <div class="flex items-center justify-between gap-3 rounded-xl bg-emerald-950/20 border border-emerald-500/30 px-3.5 py-3">
+
+                                            <span class="text-sm text-slate-200">
+                                                ${escapeHTML(item.from.name)}
+                                                <span class="text-slate-500 mx-1">pays</span>
+                                                ${escapeHTML(item.to.name)}
+                                            </span>
+
+                                            <span class="font-mono font-bold text-emerald-300">
+                                                ${formatMoney(item.amount)}
+                                            </span>
+
+                                        </div>
+                                    `).join('')}
+
+                                </div>
+                              `
+                }
+
+
+                    <button
+                        onclick="closeModal()"
+                        class="w-full mt-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm"
+                    >
+                        Return to Home
+                    </button>
+
+                </div>
+            `);
+        }
+
         /**
         * Publish the host's current Ring Game state to Supabase.
         */
@@ -7677,12 +7902,19 @@
                 null;
 
 
+            const finalGameState =
+                state.game
+                    ? structuredClone(state.game)
+                    : null;
+
+
             /*
              * Mark the online database record completed.
              */
             if (cloudGameId) {
                 await completeCurrentCloudGame(
                     cloudGameId
+                    finalGameState
                 );
             }
 
