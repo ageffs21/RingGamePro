@@ -5702,11 +5702,125 @@
             }
 
 
-            showToast(
-                'Leave request sent to the host.',
-                'success'
-            );
+            openPendingLeaveSettlement();
         }
+
+
+        function openPendingLeaveSettlement() {
+
+            if (!state.game || !currentUser) {
+                return;
+            }
+
+
+            const player =
+                state.game.players.find(
+                    item =>
+                        item.userId === currentUser.id
+                );
+
+
+            if (!player) {
+                return;
+            }
+
+
+            const transactions =
+                getPlayerExitSettlement(
+                    player.id
+                );
+
+
+            openModal(`
+                <div class="p-5 sm:p-6">
+
+                    <div class="text-[11px] font-bold uppercase tracking-wider text-amber-400 mb-1">
+                        Leave Request Sent
+                    </div>
+
+                    <h2 class="text-xl font-extrabold text-white">
+                        Settle Up
+                    </h2>
+
+                    <p class="text-sm text-slate-400 mt-2">
+                        This is your current settlement.
+                        Complete these payments while waiting for the host to approve your departure.
+                    </p>
+
+
+                    ${transactions.length === 0
+                    ? `
+                                <div class="mt-4 rounded-xl bg-slatefelt-850 border border-slatefelt-700 p-4">
+
+                                    <div class="text-sm font-bold text-emerald-300">
+                                        You are square.
+                                    </div>
+
+                                    <div class="text-xs text-slate-400 mt-1">
+                                        No payment is currently required.
+                                    </div>
+
+                                </div>
+                              `
+                    : `
+                                <div class="space-y-2 mt-4">
+
+                                    ${transactions.map(transaction => `
+                                        <div class="flex items-center justify-between gap-3 rounded-xl bg-amber-950/20 border border-amber-500/30 px-3.5 py-3">
+
+                                            <span class="text-sm text-slate-200">
+
+                                                ${escapeHTML(transaction.fromPlayerName)}
+
+                                                <span class="text-slate-500 mx-1">
+                                                    pays
+                                                </span>
+
+                                                ${escapeHTML(transaction.toPlayerName)}
+
+                                            </span>
+
+                                            <span class="font-mono font-bold text-amber-300">
+                                                ${formatMoney(transaction.amount)}
+                                            </span>
+
+                                        </div>
+                                    `).join('')}
+
+                                </div>
+                              `
+                }
+
+
+                    <div class="mt-5 px-3 py-3 rounded-xl bg-blue-950/20 border border-blue-500/30">
+
+                        <div class="flex items-center gap-2">
+
+                            <span class="w-2 h-2 rounded-full bg-blue-400"></span>
+
+                            <span class="text-xs font-bold text-blue-300">
+                                Waiting for host approval
+                            </span>
+
+                        </div>
+
+                        <p class="text-[11px] text-slate-400 mt-1">
+                            You will remain in the live game until the host confirms that settlement is complete.
+                        </p>
+
+                    </div>
+
+
+                    <button
+                        onclick="closeModal()"
+                        class="w-full mt-4 py-2.5 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-700 text-slate-300 font-bold text-sm"
+                    >
+                        Return to Game
+                    </button>
+
+                </div>
+            `);
+}
 
 
         async function confirmPlayerLeave(playerId) {
