@@ -3016,6 +3016,7 @@
                 cloudGameId: state.config.onlineGameId || null,
                 joinCode: state.config.joinCode || null,
                 isOnline: state.config.isOnline === true,
+                format: state.config.format,
                 rackNumber: 1,
                 players,
                 currentShooterIndex: 0,
@@ -7956,7 +7957,7 @@
                     RACK #${g.rackNumber}
                     </button>
                     <div class="text-xs sm:text-sm text-slate-300">
-                    <span class="font-bold text-white uppercase">${escapeHTML(state.config.format)}</span>
+                    <span class="font-bold text-white uppercase">${escapeHTML(g.format || state.config.format)}</span>
                     <span class="mx-1.5 text-slate-600">&bull;</span>
                     <span>${pocketedInCurrentRack.length}/${g.moneyBalls.length} Balls Made</span>
                     </div>
@@ -8623,31 +8624,66 @@
 
             if (state.view === 'live' && state.game) {
 
+                /*
+                 * Once a match has started, the match itself is
+                 * authoritative. Do not use this device's old setup
+                 * configuration to describe the live game.
+                 */
+                const liveFormat =
+                    state.game.format ||
+                    state.config.format;
+
+
+                const activePlayerCount =
+                    state.game.players.filter(
+                        player =>
+                            player.active !== false &&
+                            !player.eliminated
+                    ).length;
+
+
+                const isOnlineViewer =
+                    state.game.isOnline &&
+                    state.config.onlineRole === 'player';
+
+
                 subtitle.textContent =
-                    `${state.config.format.toUpperCase()} • ${state.game.players.length} Players`;
+                    `${liveFormat.toUpperCase()} • ${activePlayerCount} Players`;
 
-                headerActions.innerHTML = `
-                    ${rulesButton}
-                    ${playersButton}
-                    ${accountButton}
 
-                    <button
+                /*
+                 * Joined online players get read-only match controls.
+                 * The host keeps all game-management actions.
+                 */
+                headerActions.innerHTML =
+                    isOnlineViewer
+                        ? `
+                ${rulesButton}
+                ${accountButton}
+              `
+                        : `
+                ${rulesButton}
+                ${playersButton}
+                ${accountButton}
+
+                <button
                     onclick="openEndGameModal()"
                     class="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs transition shadow"
-                    >
+                >
                     Settle Up
-                    </button>
+                </button>
 
-                    <button
+                <button
                     onclick="confirmResetModal()"
                     class="px-3 py-1.5 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-700 text-slate-300 font-semibold text-xs transition"
-                    >
+                >
                     New Game
-                    </button>
-                `;
+                </button>
+              `;
 
-                root.innerHTML = renderLiveView();
 
+                root.innerHTML =
+                    renderLiveView();
             } else {
 
                 subtitle.textContent = `Billiards Ring Game Tracker • v${APP_VERSION}`;
