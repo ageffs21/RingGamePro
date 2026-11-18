@@ -2453,6 +2453,36 @@
                             filter: `game_id=eq.${gameId}`
                         },
                         async (payload) => {
+                            /*
+                            * If this device's registered player was marked as left
+                            * by the host, finish the departure on this device.
+                            */
+                            if (
+                                state.view === 'live' &&
+                                state.config.onlineRole === 'player' &&
+                                payload.eventType === 'UPDATE' &&
+                                payload.new?.user_id === currentUser?.id &&
+                                payload.new?.status === 'left'
+                            ) {
+
+                                const currentParticipant =
+                                    state.game?.players?.find(
+                                        player =>
+                                            player.userId ===
+                                            currentUser.id
+                                    );
+
+
+                                if (currentParticipant) {
+
+                                    await handleOnlinePlayerDeparture(
+                                        state.game,
+                                        currentParticipant
+                                    );
+                                }
+
+                                return;
+                            }
 
                             /*
                              * If an active player requested to leave during
@@ -6414,6 +6444,49 @@
             incomingGameState,
             currentParticipant
         ) {
+
+            const gameId =
+                state.game?.cloudGameId ||
+                state.config.onlineGameId;
+
+
+            if (gameId) {
+
+                const {
+                    data: cloudGame,
+                    error: cloudGameError
+                } =
+                    await supabaseClient
+                        .from('games')
+                        .select('game_state')
+                        .eq(
+                            'id',
+                            gameId
+                        )
+                        .maybeSingle();
+
+
+                if (cloudGameError) {
+
+                    console.error(
+                        'Could not load final departure settlement:',
+                        cloudGameError
+                    );
+
+                } else if (cloudGame?.game_state) {
+
+                    incomingGameState =
+                        cloudGame.game_state;
+
+
+                    currentParticipant =
+                        incomingGameState.players.find(
+                            player =>
+                                player.userId ===
+                                currentUser?.id
+                        ) || currentParticipant;
+                }
+            }
 
             /*
              * Find this player's final frozen exit settlement.
