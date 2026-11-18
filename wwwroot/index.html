@@ -2465,6 +2465,25 @@
                         },
                         async (payload) => {
                             /*
+                             * A registered player is requesting to join an
+                             * online match that is already in progress.
+                             */
+                            if (
+                                state.view === 'live' &&
+                                state.config.onlineRole === 'host' &&
+                                payload.eventType === 'INSERT' &&
+                                payload.new?.status === 'pending'
+                            ) {
+
+                                openActiveGameJoinRequestModal(
+                                    payload.new
+                                );
+
+                                return;
+                            }
+
+
+                            /*
                             * If this device's registered player was marked as left
                             * by the host, finish the departure on this device.
                             */
@@ -5046,9 +5065,12 @@
                         'join_code',
                         joinCode
                     )
-                    .eq(
+                    .in(
                         'status',
-                        'waiting'
+                        [
+                            'waiting',
+                            'active'
+                        ]
                     )
                     .maybeSingle();
 
@@ -5072,12 +5094,19 @@
             if (!gameData) {
 
                 showToast(
-                    'No waiting game was found with that code.',
+                    'No available game was found with that code.',
                     'warning'
                 );
 
                 return;
             }
+
+            /*
+             * A waiting lobby can be joined immediately.
+             * An active match requires host approval.
+             */
+            const isActiveGame =
+                gameData.status === 'active';
 
 
             /*
@@ -5229,10 +5258,14 @@
                             currentProfile.display_name,
 
                         shooting_order:
-                            shootingOrder,
+                            isActiveGame
+                                ? null
+                                : shootingOrder,
 
                         status:
-                            'active'
+                            isActiveGame
+                                ? 'pending'
+                                : 'active'
 
                     });
 
@@ -5305,6 +5338,445 @@
                 'success'
             );
         }
+
+
+        function openActiveGameJoinRequestModal(
+            pendingPlayer
+        ) {
+
+            if (
+                !pendingPlayer ||
+                !pendingPlayer.id
+            ) {
+                return;
+            }
+
+
+            openModal(`
+                <div class="p-5 sm:p-6">
+
+                    <div class="text-[11px] font-bold uppercase tracking-wider text-blue-400 mb-1">
+                        Join Request
+                    </div>
+
+                    <h2 class="text-xl font-extrabold text-white">
+                        ${escapeHTML(pendingPlayer.display_name)} Wants to Join
+                    </h2>
+
+                    <p class="text-sm text-slate-400 mt-2">
+                        The match is already in progress.
+                        Approving this request will add the player
+                        to the end of the current shooting rotation.
+                    </p>
+
+
+                    <div class="mt-4 rounded-xl bg-slatefelt-950 border border-slatefelt-700 p-4">
+
+                        <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">
+                            New Player
+                        </div>
+
+                        <div class="text-base font-bold text-white mt-1">
+                            ${escapeHTML(pendingPlayer.display_name)}
+                        </div>
+
+                        <div class="text-xs text-slate-400 mt-1">
+                            Starts at $0.00 and owes nothing for money balls made before joining.
+                        </div>
+
+                    </div>
+
+
+                    <div class="grid grid-cols-2 gap-2 mt-5">
+
+                        <button
+                            type="button"
+                            onclick="declineActiveGameJoinRequest('${pendingPlayer.id}')"
+                            class="py-3 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-700 text-slate-300 font-bold text-sm"
+                        >
+                            Decline
+                        </button>
+
+
+                        <button
+                            type="button"
+                            onclick="approveActiveGameJoinRequest('${pendingPlayer.id}')"
+                            class="py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm"
+                        >
+                            Approve & Add
+                        </button>
+
+                    </div>
+
+                </div>
+            `);
+}
+
+
+        async function approveActiveGameJoinRequest(
+            gamePlayerId
+        ) {
+
+            if (
+                !state.game ||
+                !state.game.cloudGameId ||
+                state.config.onlineRole !== 'host'
+            ) {
+                return;
+            }
+
+
+            /*
+             * Fetch the pending participation row.
+             */
+            const {
+                data: pendingPlayer,
+                error: pendingError
+            } =
+                await supabaseClient
+                    .from('game_players')
+                    .select('*')
+                    .eq(
+                        'id',
+                        gamePlayerId
+                    )
+                    .eq(
+                        'game_id',
+                        state.game.cloudGameId
+                    )
+                    .eq(
+                        'status',
+                        'pending'
+                    )
+                    .maybeSingle();
+
+
+            if (
+                pendingError ||
+                !pendingPlayer
+            ) {
+
+                console.error(
+                    'Could not load pending player:',
+                    pendingError
+                );
+
+                showToast(
+                    'Could not approve this player.',
+                    'danger'
+                );
+
+                return;
+            }
+
+
+            /*
+             * Don't exceed the Ring Game player limit.
+             */
+            const activePlayerCount =
+                state.game.players.filter(
+                    player =>
+                        player.active !== false
+                ).length;
+
+
+            if (activePlayerCount >= 12) {
+
+                showToast(
+                    'This game already has 12 active players.',
+                    'warning'
+                );
+
+                return;
+            }
+
+
+            /*
+             * Build the same player structure used by the live
+             * Ring Game engine.
+             */
+            const newPlayer = {
+
+                id:
+                    pendingPlayer.id,
+
+                userId:
+                    pendingPlayer.user_id,
+
+                name:
+                    pendingPlayer.display_name,
+
+                isGuest:
+                    false,
+
+                eliminated:
+                    false,
+
+                active:
+                    true,
+
+                joinedAtRack:
+                    state.game.rackNumber,
+
+                leftAtRack:
+                    null,
+
+                settledOnExit:
+                    false
+
+            };
+
+
+            /*
+             * Add to the end of the current shooting rotation.
+             */
+            state.game.players.push(
+                newPlayer
+            );
+
+
+            /*
+             * Extend the pairwise ledger.
+             *
+             * The new player starts at zero and therefore owes
+             * nothing from money balls made before joining.
+             */
+            state.game.ledger[newPlayer.id] =
+            {};
+
+
+            state.game.players.forEach(
+                otherPlayer => {
+
+                    if (
+                        otherPlayer.id === newPlayer.id
+                    ) {
+                        return;
+                    }
+
+
+                    state.game.ledger[
+                        newPlayer.id
+                    ][
+                        otherPlayer.id
+                    ] = 0;
+
+
+                    if (
+                        !state.game.ledger[
+                        otherPlayer.id
+                        ]
+                    ) {
+                        state.game.ledger[
+                            otherPlayer.id
+                        ] = {};
+                    }
+
+
+                    state.game.ledger[
+                        otherPlayer.id
+                    ][
+                        newPlayer.id
+                    ] = 0;
+                }
+            );
+
+
+            /*
+             * Record the join in match history.
+             */
+            state.game.history.unshift({
+
+                id:
+                    Date.now(),
+
+                type:
+                    'player_joined',
+
+                rack:
+                    state.game.rackNumber,
+
+                playerId:
+                    newPlayer.id,
+
+                playerName:
+                    newPlayer.name,
+
+                timestamp:
+                    new Date().toLocaleTimeString(
+                        [],
+                        {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        }
+                    )
+
+            });
+
+
+            /*
+             * Activate the player's cloud participation and
+             * assign the new shooting-order position.
+             */
+            const {
+                error: activationError
+            } =
+                await supabaseClient
+                    .from('game_players')
+                    .update({
+
+                        status:
+                            'active',
+
+                        shooting_order:
+                            state.game.players.length
+
+                    })
+                    .eq(
+                        'id',
+                        pendingPlayer.id
+                    )
+                    .eq(
+                        'game_id',
+                        state.game.cloudGameId
+                    );
+
+
+            if (activationError) {
+
+                console.error(
+                    'Could not activate joining player:',
+                    activationError
+                );
+
+
+                /*
+                 * Roll back the local addition because cloud
+                 * approval failed.
+                 */
+                state.game.players =
+                    state.game.players.filter(
+                        player =>
+                            player.id !== newPlayer.id
+                    );
+
+
+                delete state.game.ledger[
+                    newPlayer.id
+                ];
+
+
+                state.game.players.forEach(
+                    player => {
+
+                        if (
+                            state.game.ledger[
+                            player.id
+                            ]
+                        ) {
+                            delete state.game.ledger[
+                                player.id
+                            ][
+                                newPlayer.id
+                            ];
+                        }
+
+                    }
+                );
+
+
+                state.game.history =
+                    state.game.history.filter(
+                        event =>
+                            event.playerId !==
+                            newPlayer.id
+                    );
+
+
+                showToast(
+                    'Could not add the player to the live game.',
+                    'danger'
+                );
+
+                return;
+            }
+
+
+            /*
+             * Publish the updated live game to every participant.
+             */
+            await saveAndSyncGame();
+
+
+            closeModal();
+
+            render();
+
+
+            showToast(
+                `${newPlayer.name} joined the game.`,
+                'success'
+            );
+}
+
+
+        async function declineActiveGameJoinRequest(
+            gamePlayerId
+        ) {
+
+            if (
+                !state.game ||
+                state.config.onlineRole !== 'host'
+            ) {
+                return;
+            }
+
+
+            const { error } =
+                await supabaseClient
+                    .from('game_players')
+                    .update({
+                        status: 'left',
+                        left_at: new Date().toISOString()
+                    })
+                    .eq(
+                        'id',
+                        gamePlayerId
+                    )
+                    .eq(
+                        'game_id',
+                        state.game.cloudGameId
+                    )
+                    .eq(
+                        'status',
+                        'pending'
+                    );
+
+
+            if (error) {
+
+                console.error(
+                    'Could not decline active-game join request:',
+                    error
+                );
+
+                showToast(
+                    'Could not decline the join request.',
+                    'danger'
+                );
+
+                return;
+            }
+
+
+            closeModal();
+
+
+            showToast(
+                'Join request declined.',
+                'info'
+            );
+}
 
 
         /**
@@ -5425,6 +5897,7 @@
                 'success'
             );
         }
+
 
         /**
         * Restore the current online lobby after the app loads
