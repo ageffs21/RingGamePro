@@ -8768,6 +8768,10 @@
         */
         function renderSetupView() {
             const cfg = state.config;
+            const isOnlineParticipant =
+                cfg.isOnline &&
+                cfg.onlineRole !== 'host';
+
 
             // Set the highest available ball based on the selected format.
             let maxBall = 15;
@@ -9010,17 +9014,17 @@
 
                 </div>
 
-
-                <div class="flex items-center justify-between bg-slatefelt-850/80 px-3.5 py-2.5 rounded-xl border border-slatefelt-700/60">
-                    <span class="text-xs text-slate-300">Drag rows or use arrows to set order, or draw pills:</span>
-                    <button
-                    onclick="randomizePlayerOrder()"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition shadow">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                    Randomize Order
-                    </button>
-                </div>
-
+                ${!isOnlineParticipant ? `
+                    <div class="flex items-center justify-between bg-slatefelt-850/80 px-3.5 py-2.5 rounded-xl border border-slatefelt-700/60">
+                        <span class="text-xs text-slate-300">Drag rows or use arrows to set order, or draw pills:</span>
+                        <button
+                        onclick="randomizePlayerOrder()"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition shadow">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        Randomize Order
+                        </button>
+                    </div>
+                ` : '' }
 
                 <div class="space-y-2">
                     ${cfg.players.map((p, idx) => `
@@ -9064,6 +9068,7 @@
                 </div>
                 </section>
 
+                ${!isOnlineParticipant ? `
 
                 <section class="bg-slatefelt-900 border border-slatefelt-700/80 rounded-2xl p-5 shadow-lg space-y-4">
                 <div>
@@ -9195,6 +9200,7 @@
                 class="w-full py-4 px-6 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-base sm:text-lg tracking-tight shadow-xl transition transform active:scale-[0.99] cursor-pointer">
                 Break Rack #1 & Start Ring Game &rarr;
                 </button>
+                ` : ''}
             </div>
             `;
         }
@@ -9697,7 +9703,17 @@
         * RENDER RACKS & STATS TAB
         */
         function renderRacksAndStatsTab() {
-            const g = state.game;
+            const g =
+                state.game;
+
+            if (!g) {
+                return '';
+            }
+
+
+            const isOnlineViewer =
+                g.isOnline &&
+                state.config.onlineRole === 'player';
 
 
             const playerStats = g.players.map(p => {
@@ -9807,13 +9823,20 @@
 
                         <div class="flex items-center gap-3">
                             <span class="text-xs font-mono text-slate-300">
-                            Pot: <strong class="text-emerald-400">${formatMoney(rackTotalPot)}</strong>
+                                Pot: <strong class="text-emerald-400">${formatMoney(rackTotalPot)}</strong>
                             </span>
-                            <button
-                            onclick="openEditRackModal(${rack.rackNumber})"
-                            class="px-3 py-1.5 rounded-lg bg-slatefelt-800 hover:bg-blue-600/25 hover:border-blue-500/50 hover:text-blue-300 border border-slatefelt-700 text-xs font-bold text-slate-200 transition">
-                            ✎ Edit Rack
-                            </button>
+
+                            ${!isOnlineViewer ? `
+
+                                <button
+                                    onclick="openEditRackModal(${rack.rackNumber})"
+                                    class="px-3 py-1.5 rounded-lg bg-slatefelt-800 hover:bg-blue-600/25 hover:border-blue-500/50 hover:text-blue-300 border border-slatefelt-700 text-xs font-bold text-slate-200 transition"
+                                >
+                                    ✎ Edit Rack
+                                </button>
+
+                            ` : ''}
+
                         </div>
                         </div>
 
