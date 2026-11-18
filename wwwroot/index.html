@@ -2635,8 +2635,7 @@
                                     'table';
 
 
-                                saveState();
-
+                                saveAndSyncGame();
                                 render();
 
 
@@ -3320,7 +3319,7 @@
             });
 
 
-            saveState();
+            saveAndSyncGame();
             render();
         }
 
@@ -3378,7 +3377,7 @@
                 })
             });
 
-            saveState();
+            saveAndSyncGame();
             render();
 
             showToast(
@@ -3470,7 +3469,7 @@
             advanceToNextRackInternal(shooterIdx, `All money balls cleared! ${shooter.name} collected +${formatMoney(pocketRecord.totalCollected)} & breaks Rack #${state.game.rackNumber + 1}!`);
             } else {
             const remainingCount = state.game.moneyBalls.length - currentRack.pocketedBalls.length;
-            saveState();
+            saveAndSyncGame();
             render();
             showToast(
                 `${shooter.name} pocketed the ${ballObj.ball}-ball (+${formatMoney(pocketRecord.totalCollected)})! ${remainingCount} money ball${remainingCount === 1 ? '' : 's'} left in rack.`,
@@ -3625,7 +3624,7 @@
             state.game.history = prev.history;
 
 
-            saveState();
+            saveAndSyncGame();
             render();
             showToast('Last action undone.', 'info');
         }
@@ -6388,6 +6387,24 @@
 
 
             return true;
+        }
+
+
+        /**
+        * Save the local game and synchronize it to Supabase
+        * when this device is hosting an online match.
+        */
+        async function saveAndSyncGame() {
+
+            saveState();
+
+            if (
+                state.game &&
+                state.game.isOnline &&
+                state.config.onlineRole === 'host'
+            ) {
+                await publishOnlineGameState();
+            }
         }
 
 
