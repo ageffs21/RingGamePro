@@ -2580,76 +2580,81 @@
                                 payload.new;
 
 
+                        /*
+                        * The host started the match.
+                        */
+                        if (
+                            updatedGame.status === 'active' &&
+                            state.config.onlineRole === 'player'
+                        ) {
+
                             /*
-                             * The host started the match.
-                             */
-                            if (
-                                updatedGame.status === 'active' &&
-                                state.config.onlineRole === 'player'
-                            ) {
+                                * The host has started the match.
+                                * The complete authoritative Ring Game state
+                                * is stored in games.game_state.
+                                */
+                            if (!updatedGame.game_state) {
 
-                                /*
-                                 * The host has started the match.
-                                 * The complete authoritative Ring Game state
-                                 * is stored in games.game_state.
-                                 */
-                                if (!updatedGame.game_state) {
+                                console.warn(
+                                    'Game started but no game_state was received.'
+                                );
 
-                                    console.warn(
-                                        'Game started but no game_state was received.'
-                                    );
-
-                                    return;
-                                }
+                                return;
+                            }
 
 
-                                /*
-                                 * Load the exact game created by the host.
-                                 */
-                                state.game =
-                                    updatedGame.game_state;
+                            const isEnteringLiveGame =
+                                state.view !== 'live';
 
 
-                                /*
-                                 * Preserve this device's online identity.
-                                 */
-                                state.game.cloudGameId =
-                                    gameId;
-
-                                state.game.joinCode =
-                                    updatedGame.join_code ||
-                                    state.config.joinCode;
-
-                                state.game.isOnline =
-                                    true;
+                            /*
+                                * Always use the host's newest authoritative game state.
+                                */
+                            state.game =
+                                updatedGame.game_state;
 
 
-                                /*
-                                 * Move this device from the waiting lobby
-                                 * into the live Ring Game screen.
-                                 */
-                                state.view =
-                                    'live';
+                            state.game.cloudGameId =
+                                gameId;
 
-                                activeTab =
-                                    'table';
+                            state.game.joinCode =
+                                updatedGame.join_code ||
+                                state.config.joinCode;
+
+                            state.game.isOnline =
+                                true;
 
 
-                                saveAndSyncGame();
-                                render();
+                            state.view =
+                                'live';
 
+                            activeTab =
+                                'table';
+
+
+                            saveState();
+
+                            render();
+
+
+                            /*
+                                * Only announce the initial transition into the match.
+                                * Ordinary scoring updates should update silently.
+                                */
+                            if (isEnteringLiveGame) {
 
                                 showToast(
                                     'The host started the match.',
                                     'success'
                                 );
-
-
-                                console.log(
-                                    'Joined live game:',
-                                    gameId
-                                );
                             }
+
+
+                            console.log(
+                                'Joined live game:',
+                                gameId
+                            );
+                        }
 
                         }
                     )
@@ -3514,7 +3519,7 @@
             });
 
 
-            saveState();
+            saveAndSyncGame();
             render();
             if (customToastMsg) {
             showToast(customToastMsg, 'success');
@@ -7917,6 +7922,14 @@
         */
         function renderLiveView() {
             const g = state.game;
+            /*
+             * Joined online players receive a synchronized,
+             * read-only view. Only the host controls gameplay.
+             */
+            const isOnlineViewer =
+                g.isOnline &&
+                state.config.onlineRole === 'player'
+
             const activeIndices = getActivePlayerIndices();
             const shooterIdx = g.currentShooterIndex;
             const shooter = g.players[shooterIdx];
@@ -8007,43 +8020,51 @@
                         </div>
                         </div>
 
-
-                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-5 pt-4 border-t border-slatefelt-700/70">
-                        <button
-                            onclick="nextShooter()"
-                            class="col-span-2 sm:col-span-1 py-3 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-lg transition active:scale-[0.98]">
-                            <span>Next Shooter</span>
-                            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
-                        </button>
-
-
-                        <button
-                            onclick="passShotBack()"
-                            ${!g.canPassBack ? 'disabled' : ''}
-                            class="py-3 px-2.5 rounded-xl bg-slatefelt-800 hover:bg-amber-600/20 hover:border-amber-500/50 hover:text-amber-300 disabled:opacity-35 disabled:pointer-events-none border border-slatefelt-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition"
-                            title="Pass shot back if incoming player calls a safety">
-                            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
-                            <span>Pass Back</span>
-                        </button>
+                        ${!isOnlineViewer ? `
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-5 pt-4 border-t border-slatefelt-700/70">
+                            <button
+                                onclick="nextShooter()"
+                                class="col-span-2 sm:col-span-1 py-3 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-lg transition active:scale-[0.98]">
+                                <span>Next Shooter</span>
+                                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                            </button>
 
 
-                        <button
-                            onclick="undoLastAction()"
-                            ${g.snapshots.length === 0 ? 'disabled' : ''}
-                            class="py-3 px-2.5 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 disabled:opacity-35 disabled:pointer-events-none border border-slatefelt-700 text-slate-300 font-bold text-xs flex items-center justify-center gap-1.5 transition">
-                            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z"/></svg>
-                            <span>Undo</span>
-                        </button>
+                            <button
+                                onclick="passShotBack()"
+                                ${!g.canPassBack ? 'disabled' : ''}
+                                class="py-3 px-2.5 rounded-xl bg-slatefelt-800 hover:bg-amber-600/20 hover:border-amber-500/50 hover:text-amber-300 disabled:opacity-35 disabled:pointer-events-none border border-slatefelt-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition"
+                                title="Pass shot back if incoming player calls a safety">
+                                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                                <span>Pass Back</span>
+                            </button>
 
 
-                        <button
-                            onclick="openNextRackModal()"
-                            class="col-span-2 sm:col-span-1 py-3 px-2.5 rounded-xl bg-slatefelt-800 hover:bg-emerald-600/25 border border-emerald-500/40 text-emerald-300 font-bold text-xs flex items-center justify-center gap-1.5 transition"
-                            title="Re-rack and advance to next rack">
-                            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                            <span>Next Rack</span>
-                        </button>
-                        </div>
+                            <button
+                                onclick="undoLastAction()"
+                                ${g.snapshots.length === 0 ? 'disabled' : ''}
+                                class="py-3 px-2.5 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 disabled:opacity-35 disabled:pointer-events-none border border-slatefelt-700 text-slate-300 font-bold text-xs flex items-center justify-center gap-1.5 transition">
+                                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z"/></svg>
+                                <span>Undo</span>
+                            </button>
+
+
+                            <button
+                                onclick="openNextRackModal()"
+                                class="col-span-2 sm:col-span-1 py-3 px-2.5 rounded-xl bg-slatefelt-800 hover:bg-emerald-600/25 border border-emerald-500/40 text-emerald-300 font-bold text-xs flex items-center justify-center gap-1.5 transition"
+                                title="Re-rack and advance to next rack">
+                                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                <span>Next Rack</span>
+                            </button>
+                            </div>
+                        ` : `
+                            <div class="mt-5 pt-4 border-t border-slatefelt-700/70">
+                                <div class="px-3 py-2.5 rounded-xl bg-blue-950/20 border border-blue-500/30 text-xs text-blue-300 text-center font-semibold">
+                                    Live View • Host controls scoring
+                                </div>
+                            </div>
+                        `}
+
                     </div>
 
 
@@ -8096,8 +8117,10 @@
 
                             return `
                             <button
-                                onclick='scoreMoneyBall(${JSON.stringify(mb)})'
-                                class="relative flex items-center justify-between p-4 rounded-2xl bg-slatefelt-850 hover:bg-slatefelt-800 border-2 border-slatefelt-700 hover:border-emerald-500 transition transform active:scale-[0.98] shadow-md text-left">
+                              type="button"
+                              ${isOnlineViewer ? 'disabled' : ''}
+                              onclick='scoreMoneyBall(${JSON.stringify(mb)})'
+                              class="relative flex items-center justify-between p-4 rounded-2xl bg-slatefelt-850 hover:bg-slatefelt-800 border-2 border-slatefelt-700 hover:border-emerald-500 transition transform active:scale-[0.98] shadow-md text-left disabled:opacity-60 disabled:pointer-events-none">
                                 <div class="flex items-center gap-3.5">
                                 ${renderPoolBallHTML(mb.ball, 'w-12 h-12', 'w-6 h-6 text-sm')}
                                 <div>
