@@ -2452,17 +2452,58 @@
                             table: 'game_players',
                             filter: `game_id=eq.${gameId}`
                         },
-                        async () => {
+                        async (payload) => {
 
                             /*
-                             * Supabase notified this phone that the
-                             * lobby roster changed.
+                             * If an active player requested to leave during
+                             * a live match, only the host handles settlement.
                              */
-                            await loadOnlineLobbyRoster(
-                                gameId
-                            );
+                            if (
+                                state.view === 'live' &&
+                                state.config.onlineRole === 'host' &&
+                                payload.eventType === 'UPDATE' &&
+                                payload.new?.leave_requested_at &&
+                                payload.new?.status === 'active'
+                            ) {
 
-                            render();
+                                const leavingUserId =
+                                    payload.new.user_id;
+
+
+                                const leavingPlayer =
+                                    state.game.players.find(
+                                        player =>
+                                            player.userId ===
+                                            leavingUserId
+                                    );
+
+
+                                if (leavingPlayer) {
+
+                                    openLeavePlayerModal(
+                                        leavingPlayer.id
+                                    );
+
+                                    showToast(
+                                        `${leavingPlayer.name} requested to leave the game.`,
+                                        'info'
+                                    );
+                                }
+                            }
+
+
+                            /*
+                             * During the waiting lobby, continue keeping the
+                             * participant roster synchronized.
+                             */
+                            if (state.view === 'setup') {
+
+                                await loadOnlineLobbyRoster(
+                                    gameId
+                                );
+
+                                render();
+                            }
                         }
                     )
                     .subscribe((status, err) => {
@@ -2603,13 +2644,42 @@
                             }
 
 
+                            const incomingGameState =
+                                updatedGame.game_state;
+
+
+                            /*
+                             * Determine whether the host has settled and removed
+                             * this authenticated player.
+                             */
+                            const currentParticipant =
+                                incomingGameState.players.find(
+                                    player =>
+                                        player.userId ===
+                                        currentUser?.id
+                                );
+
+
+                            if (
+                                currentParticipant &&
+                                currentParticipant.active === false
+                            ) {
+
+                                await handleOnlinePlayerDeparture(
+                                    incomingGameState,
+                                    currentParticipant
+                                );
+
+                                return;
+                            }
+
                             const isEnteringLiveGame =
                                 state.view !== 'live';
 
 
                             /*
-                                * Always use the host's newest authoritative game state.
-                                */
+                            * Always use the host's newest authoritative game state.
+                            */
                             state.game =
                                 updatedGame.game_state;
 
@@ -5539,10 +5609,77 @@
 
             </div>
             `);
+}
+
+        /**
+        * Request permission from the host to leave an active
+        * online game.
+        *
+        * The player remains active until the host settles
+        * and confirms the departure.
+        */
+        async function requestLeaveActiveGame() {
+
+            if (
+                !currentUser ||
+                !state.game ||
+                !state.game.isOnline ||
+                !state.game.cloudGameId ||
+                state.config.onlineRole !== 'player'
+            ) {
+                return;
+            }
+
+
+            const gameId =
+                state.game.cloudGameId;
+
+
+            const { error } =
+                await supabaseClient
+                    .from('game_players')
+                    .update({
+                        leave_requested_at:
+                            new Date().toISOString()
+                    })
+                    .eq(
+                        'game_id',
+                        gameId
+                    )
+                    .eq(
+                        'user_id',
+                        currentUser.id
+                    )
+                    .eq(
+                        'status',
+                        'active'
+                    );
+
+
+            if (error) {
+
+                console.error(
+                    'Could not request to leave game:',
+                    error
+                );
+
+                showToast(
+                    'Could not send leave request.',
+                    'danger'
+                );
+
+                return;
+            }
+
+
+            showToast(
+                'Leave request sent to the host.',
+                'success'
+            );
         }
 
 
-        function confirmPlayerLeave(playerId) {
+        async function confirmPlayerLeave(playerId) {
             if (!state.game) return;
 
             const player = getPlayerById(playerId);
@@ -5666,16 +5803,68 @@
             });
 
 
-            saveState();
+            /*
+             * If this is an online hosted game, update the player's
+             * cloud participation row before publishing game_state.
+             */
+            if (
+                state.game.isOnline &&
+                state.game.cloudGameId &&
+                state.config.onlineRole === 'host' &&
+                player.userId
+            ) {
+
+                const { error: participationError } =
+                    await supabaseClient
+                        .from('game_players')
+                        .update({
+                            status: 'left',
+                            left_at: new Date().toISOString(),
+                            leave_requested_at: null
+                        })
+                        .eq(
+                            'game_id',
+                            state.game.cloudGameId
+                        )
+                        .eq(
+                            'user_id',
+                            player.userId
+                        );
+
+
+                if (participationError) {
+
+                    console.error(
+                        'Could not complete cloud player departure:',
+                        participationError
+                    );
+
+                    showToast(
+                        'Player was settled locally, but the online departure could not be completed.',
+                        'warning'
+                    );
+                }
+            }
+
 
             /*
-                * Refresh the underlying live screen first.
-                */
+             * Save locally and publish the new game state.
+             *
+             * The departing player is still present in state.game.players,
+             * but active is now false and the exit settlement is retained.
+             */
+            await saveAndSyncGame();
+
+
+            /*
+             * Refresh the host's live screen.
+             */
             render();
 
+
             /*
-                * Then reopen player management.
-                */
+             * Reopen player management for the host.
+             */
             openManagePlayersModal();
 
 
@@ -5683,6 +5872,7 @@
                 `${player.name} settled and left the game.`,
                 'success'
             );
+
         }
 
 
@@ -6210,6 +6400,206 @@
                         </button>
 
                     </div>
+
+                </div>
+            `);
+        }
+
+
+        /**
+        * Show the departing player the settlement approved by
+        * the host, then return the device to normal setup.
+        */
+        async function handleOnlinePlayerDeparture(
+            incomingGameState,
+            currentParticipant
+        ) {
+
+            /*
+             * Find this player's final frozen exit settlement.
+             */
+            const exitSettlements =
+                Array.isArray(
+                    incomingGameState.exitSettlements
+                )
+                    ? incomingGameState.exitSettlements
+                    : [];
+
+
+            const settlement =
+                [exitSettlements]
+                    .reverse()
+                    .find(
+                        item =>
+                            item.playerId ===
+                            currentParticipant.id
+                    );
+
+
+            /*
+             * Stop listening to the completed participation.
+             */
+            if (onlineLobbyChannel) {
+
+                await supabaseClient.removeChannel(
+                    onlineLobbyChannel
+                );
+
+                onlineLobbyChannel = null;
+            }
+
+
+            if (onlineGameChannel) {
+
+                await supabaseClient.removeChannel(
+                    onlineGameChannel
+                );
+
+                onlineGameChannel = null;
+            }
+
+
+            /*
+             * Clear this device's online match state.
+             */
+            state.game = null;
+
+            state.view =
+                'setup';
+
+            activeTab =
+                'table';
+
+            state.config.isOnline =
+                false;
+
+            state.config.onlineGameId =
+                null;
+
+            state.config.joinCode =
+                null;
+
+            state.config.onlineRole =
+                null;
+
+
+            /*
+             * Restore ordinary offline setup.
+             */
+            state.config.playerCount =
+                4;
+
+            state.config.players *= [
+                {
+                    id: 'p1',
+                    name:
+                        currentProfile?.display_name ||
+                        'Player 1',
+                    userId:
+                        currentUser?.id || null,
+                    isGuest:
+                        !currentUser
+                },
+                {
+                    id: 'p2',
+                    name: 'Player 2',
+                    userId: null,
+                    isGuest: true
+                },
+                {
+                    id: 'p3',
+                    name: 'Player 3',
+                    userId: null,
+                    isGuest: true
+                },
+                {
+                    id: 'p4',
+                    name: 'Player 4',
+                    userId: null,
+                    isGuest: true
+                }
+            ];
+
+
+            saveState();
+
+            render();
+
+
+            /*
+             * Show the approved settlement result.
+             */
+            const transactions =
+                Array.isArray(
+                settlement?.transactions
+            )
+                       ? settlement.transactions
+                     : [];
+
+
+            openModal(`
+               <div class="p-5 sm:p-6">
+
+                   <div class="text-[11px] font-bold uppercase tracking-wider text-blue-400 mb-1">
+                        Settlement Complete
+                    </div>
+
+                    <h2 class="text-xl font-extrabold text-white">
+                       You Left the Game
+                   </h2>
+
+                    <p class="text-sm text-slate-400 mt-2">
+                       The host approved your departure and recorded
+                       the following settlement.
+                    </p>
+
+
+                    ${transactions.length === 0
+                    ? `
+                                <div class="mt-4 rounded-xl bg-slatefelt-850 border border-slatefelt-700 p-4 text-sm text-slate-300">
+                                    You were already square. No payment was required.
+                                </div>
+                              `
+                    : `
+                                <div class="space-y-2 mt-4">
+
+                                    ${transactions.map(transaction => `
+                                        <div class="flex items-center justify-between gap-3 rounded-xl bg-blue-950/20 border border-blue-500/30 px-3.5 py-3">
+
+                                            <span class="text-sm text-slate-200">
+                                                ${escapeHTML(
+                        transaction.fromPlayerName
+                    )}
+
+                                                <span class="text-slate-500 mx-1">
+                                                    pays
+                                                </span>
+
+                                                ${escapeHTML(
+                        transaction.toPlayerName
+                    )}
+                                            </span>
+
+                                            <span class="font-mono font-bold text-blue-300">
+                                                ${formatMoney(
+                        transaction.amount
+                    )}
+                                            </span>
+
+                                        </div>
+                                    `).join('')}
+
+                                </div>
+                              `
+                }
+
+
+                    <button
+                        onclick="closeModal()"
+                        class="w-full mt-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm"
+                    >
+                        Return to Home
+                    </button>
 
                 </div>
             `);
@@ -8660,8 +9050,14 @@
                         ? `
                 ${rulesButton}
                 ${accountButton}
-              `
-                        : `
+
+                <button
+                    onclick="requestLeaveActiveGame()"
+                    class="px-3 py-1.5 rounded-xl bg-rose-950/50 hover:bg-rose-900/60 border border-rose-500/40 text-rose-300 font-semibold text-xs transition">
+                    Leave Game
+                </button>
+
+                ` : `
                 ${rulesButton}
                 ${playersButton}
                 ${accountButton}
