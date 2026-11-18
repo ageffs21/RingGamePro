@@ -1761,7 +1761,6 @@
         */
         let onlineLobbyChannel = null;
         let onlineGameChannel = null;
-        let onlineLobbyRefreshTimer = null;
         let state = loadState();
         let activeTab = 'table'; // 'table' | 'racks' | 'ledger' | 'history'
         let dragSourceIndex = null;
@@ -2527,115 +2526,6 @@
                         }
 
                     });
-            /*
-             * Start the mobile fallback AFTER the Realtime
-             * subscription has been created.
-             */
-            startOnlineLobbyRefresh(
-                gameId
-            );
-        }
-
-
-        /**
-        * Start a lightweight lobby refresh fallback.
-        *
-        * Supabase Realtime remains the primary update path.
-        * This timer keeps mobile PWAs synchronized if Android
-        * suspends or misses a WebSocket event.
-        */
-        function startOnlineLobbyRefresh(gameId) {
-
-            stopOnlineLobbyRefresh();
-
-            if (!gameId) {
-                return;
-            }
-
-            console.log(
-                'Starting lobby refresh timer:',
-                gameId
-            );
-
-
-            onlineLobbyRefreshTimer =
-                window.setInterval(
-                    async () => {
-
-                        /*
-                         * Only stop polling if this phone is no longer
-                         * attached to this particular online lobby.
-                         *
-                         * Do NOT depend on visibilityState or state.view.
-                         * Installed Android PWAs can behave differently
-                         * from a normal browser window.
-                         */
-                        if (
-                            !state.config.isOnline ||
-                            state.config.onlineGameId !== gameId
-                        ) {
-                            return;
-                        }
-
-
-                        const previousRoster =
-                            state.config.players
-                                .map(player => player.id)
-                                .join('|');
-
-
-                        const success =
-                            await loadOnlineLobbyRoster(
-                                gameId
-                            );
-
-
-                        if (!success) {
-                            return;
-                        }
-
-
-                        const newRoster =
-                            state.config.players
-                                .map(player => player.id)
-                                .join('|');
-
-                        if (newRoster !== previousRoster) {
-
-                            const newCount =
-                                state.config.players.length;
-
-                            console.log(
-                                `Lobby roster changed: ${previousCount} -> ${newCount}`
-                            );
-
-                            render();
-
-                            showToast(
-                                `${newCount} players now in lobby.`,
-                                'info'
-                            );
-                        }
-
-                    },
-                    2000
-                );
-        }
-
-
-        /**
-         * Stop the mobile lobby refresh fallback.
-         */
-        function stopOnlineLobbyRefresh() {
-
-            if (onlineLobbyRefreshTimer) {
-
-                window.clearInterval(
-                    onlineLobbyRefreshTimer
-                );
-
-                onlineLobbyRefreshTimer = null;
-            }
         }
 
 
@@ -2698,26 +2588,66 @@
                                 state.config.onlineRole === 'player'
                             ) {
 
+                                /*
+                                 * The host has started the match.
+                                 * The complete authoritative Ring Game state
+                                 * is stored in games.game_state.
+                                 */
+                                if (!updatedGame.game_state) {
+
+                                    console.warn(
+                                        'Game started but no game_state was received.'
+                                    );
+
+                                    return;
+                                }
+
+
+                                /*
+                                 * Load the exact game created by the host.
+                                 */
+                                state.game =
+                                    updatedGame.game_state;
+
+
+                                /*
+                                 * Preserve this device's online identity.
+                                 */
+                                state.game.cloudGameId =
+                                    gameId;
+
+                                state.game.joinCode =
+                                    updatedGame.join_code ||
+                                    state.config.joinCode;
+
+                                state.game.isOnline =
+                                    true;
+
+
+                                /*
+                                 * Move this device from the waiting lobby
+                                 * into the live Ring Game screen.
+                                 */
+                                state.view =
+                                    'live';
+
+                                activeTab =
+                                    'table';
+
+
+                                saveState();
+
+                                render();
+
+
                                 showToast(
                                     'The host started the match.',
                                     'success'
                                 );
 
 
-                                /*
-                                 * We'll replace this with the full shared
-                                 * match-loading routine in the next step.
-                                 *
-                                 * For now this proves the joining phone
-                                 * receives the start signal.
-                                 */
-                                await loadOnlineLobbyRoster(
-                                    gameId
-                                );
-
-
                                 console.log(
-                                    'Host start detected for game:',
+                                    'Joined live game:',
                                     gameId
                                 );
                             }
@@ -2969,7 +2899,7 @@
         /**
         * START GAME
         */
-        function startMatch() {
+        async function startMatch() {
             try {
             /*
             * Only the host controls the start of an online match.
@@ -3107,9 +3037,57 @@
 
             state.view = 'live';
             activeTab = 'table';
+
             saveState();
+
+
+            /*
+                * For an online match, publish the finalized game state
+                * and change the cloud game's status from waiting to active.
+                */
+            if (
+                state.game.isOnline &&
+                state.game.cloudGameId &&
+                state.config.onlineRole === 'host'
+            ) {
+
+                const {
+                    error: cloudStartError
+                } =
+                    await supabaseClient
+                        .from('games')
+                        .update({
+                            status: 'active',
+                            game_state: state.game
+                        })
+                        .eq(
+                            'id',
+                            state.game.cloudGameId
+                        );
+
+
+                if (cloudStartError) {
+
+                    console.error(
+                        'Could not start cloud game:',
+                        cloudStartError
+                    );
+
+                    showToast(
+                        'Match started locally, but cloud sync failed.',
+                        'warning'
+                    );
+                }
+            }
+
+
             render();
-            showToast(`Rack #1 started! ${players[0].name} breaks.`, 'success');
+
+
+            showToast(
+                `Rack #1 started! ${players[0].name} breaks.`,
+                'success'
+            );
             } catch (err) {
             console.error('Error starting match:', err);
             showToast('Could not start match. Please check your setup settings.', 'danger');
@@ -5179,6 +5157,7 @@
             );
         }
 
+
         /**
         * Load the current online lobby roster from Supabase.
         */
@@ -6174,6 +6153,241 @@
                 'Online lobby abandoned.',
                 'info'
             );
+        }
+
+
+        function confirmLeaveOnlineLobby() {
+
+            if (
+                !state.config.isOnline ||
+                state.config.onlineRole !== 'player'
+            ) {
+                console.warn(
+                    'Leave Lobby blocked:',
+                    state.config.isOnline,
+                    state.config.onlineRole
+                );
+
+                return;
+            }
+
+
+            openModal(`
+                <div class="p-5 sm:p-6">
+
+                    <div class="text-[11px] font-bold uppercase tracking-wider text-rose-400 mb-1">
+                        Online Lobby
+                    </div>
+
+                    <h2 class="text-xl font-extrabold text-white">
+                        Leave Lobby?
+                    </h2>
+
+                    <p class="text-sm text-slate-400 mt-2">
+                        You will leave this lobby. The host and
+                        remaining players can continue waiting.
+                    </p>
+
+                    <div class="flex gap-2 mt-5">
+
+                        <button
+                            onclick="closeModal()"
+                            class="flex-1 py-2.5 rounded-xl bg-slatefelt-800 border border-slatefelt-700 text-slate-300 font-bold"
+                        >
+                            Stay
+                        </button>
+
+                        <button
+                            onclick="leaveOnlineLobby()"
+                            class="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold"
+                        >
+                            Leave
+                        </button>
+
+                    </div>
+
+                </div>
+            `);
+        }
+
+
+        async function leaveOnlineLobby() {
+
+            if (
+                !currentUser ||
+                !state.config.onlineGameId ||
+                state.config.onlineRole !== 'player'
+            ) {
+                closeModal();
+                return;
+            }
+
+            const gameId =
+                state.config.onlineGameId;
+
+
+            const { error } =
+                await supabaseClient
+                    .from('game_players')
+                    .update({
+                        status: 'left',
+                        left_at: new Date().toISOString()
+                    })
+                    .eq(
+                        'game_id',
+                        gameId
+                    )
+                    .eq(
+                        'user_id',
+                        currentUser.id
+                    );
+
+
+            if (error) {
+
+                console.error(
+                    'Could not leave online lobby:',
+                    error
+                );
+
+                showToast(
+                    'Could not leave the lobby.',
+                    'danger'
+                );
+
+                return;
+            }
+
+
+            /*
+             * Disconnect this device from the cloud lobby.
+             */
+            if (onlineLobbyChannel) {
+
+                await supabaseClient.removeChannel(
+                    onlineLobbyChannel
+                );
+
+                onlineLobbyChannel = null;
+            }
+
+
+            if (onlineGameChannel) {
+
+                await supabaseClient.removeChannel(
+                    onlineGameChannel
+                );
+
+                onlineGameChannel = null;
+            }
+
+
+            /*
+             * Clear lobby identity from this phone.
+             */
+            state.config.isOnline = false;
+            state.config.onlineGameId = null;
+            state.config.joinCode = null;
+            state.config.onlineRole = null;
+
+
+            /*
+             * Restore a normal offline setup.
+             */
+            state.config.playerCount = 4;
+
+            state.config.players = [
+                {
+                    id: 'p1',
+                    name:
+                        currentProfile?.display_name ||
+                        'Player 1',
+                    userId:
+                        currentUser.id,
+                    isGuest: false
+                },
+
+                {
+                    id: 'p2',
+                    name: 'Player 2',
+                    userId: null,
+                    isGuest: true
+                },
+
+                {
+                    id: 'p3',
+                    name: 'Player 3',
+                    userId: null,
+                    isGuest: true
+                },
+
+                {
+                    id: 'p4',
+                    name: 'Player 4',
+                    userId: null,
+                    isGuest: true
+                }
+            ];
+
+
+            saveState();
+
+            closeModal();
+
+            render();
+
+
+            showToast(
+                'You left the online lobby.',
+                'info'
+            );
+        }
+
+
+        /**
+        * Publish the host's current Ring Game state to Supabase.
+        */
+        async function publishOnlineGameState() {
+
+            if (
+                !state.game ||
+                !state.game.isOnline ||
+                !state.game.cloudGameId ||
+                state.config.onlineRole !== 'host'
+            ) {
+                return false;
+            }
+
+
+            const { error } =
+                await supabaseClient
+                    .from('games')
+                    .update({
+                        game_state: state.game
+                    })
+                    .eq(
+                        'id',
+                        state.game.cloudGameId
+                    );
+
+
+            if (error) {
+
+                console.error(
+                    'Could not publish online game state:',
+                    error
+                );
+
+                showToast(
+                    'Could not sync the online game.',
+                    'warning'
+                );
+
+                return false;
+            }
+
+
+            return true;
         }
 
 
@@ -7329,22 +7543,45 @@
                             Set or randomize the shooting order before starting the match.
                         </p>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">
-                          <button
-                            onclick="openSetupGuestModal()"
-                            ${cfg.players.length >= 12 ? 'disabled' : ''}
-                            class="py-2.5 px-3 rounded-xl bg-amber-600/20 hover:bg-amber-600/30 disabled:opacity-40 disabled:pointer-events-none border border-amber-500/40 text-amber-300 text-sm font-bold transition"
-                          >
-                            + Add Guest
-                          </button>
+                        ${
+                        cfg.onlineRole === 'host'
+                            ? `
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">
 
-                          <button
-                            onclick="confirmAbandonOnlineLobby()"
-                            class="py-2.5 px-3 rounded-xl bg-rose-950/40 hover:bg-rose-900/50 border border-rose-500/40 text-rose-300 text-sm font-bold transition"
-                          >
-                            Abandon Lobby
-                          </button>
-                        </div>
+                                <button
+                                    onclick="openSetupGuestModal()"
+                                    ${cfg.players.length >= 12 ? 'disabled' : ''}
+                                    class="py-2.5 px-3 rounded-xl bg-amber-600/20 hover:bg-amber-600/30 disabled:opacity-40 disabled:pointer-events-none border border-amber-500/40 text-amber-300 text-sm font-bold transition"
+                                >
+                                    + Add Guest
+                                </button>
+
+                                <button
+                                    onclick="confirmAbandonOnlineLobby()"
+                                    class="py-2.5 px-3 rounded-xl bg-rose-950/40 hover:bg-rose-900/50 border border-rose-500/40 text-rose-300 text-sm font-bold transition"
+                                >
+                                    Abandon Lobby
+                                </button>
+
+                                </div>
+                            `
+                                            : `
+                                <div class="mt-4">
+
+                                <div class="px-3 py-2.5 rounded-xl bg-blue-950/20 border border-blue-500/30 text-xs text-blue-300 mb-2">
+                                    Waiting for the host to finalize the shooting order and start the match.
+                                </div>
+
+                                <button
+                                    onclick="confirmLeaveOnlineLobby()"
+                                    class="w-full py-2.5 px-3 rounded-xl bg-rose-950/40 hover:bg-rose-900/50 border border-rose-500/40 text-rose-300 text-sm font-bold transition"
+                                >
+                                    Leave Lobby
+                                </button>
+
+                                </div>
+                            `
+                        }
                         `
 
                     : currentUser
