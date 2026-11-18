@@ -6500,7 +6500,7 @@
 
 
             const settlement =
-                [exitSettlements]
+                [...exitSettlements]
                     .reverse()
                     .find(
                         item =>
@@ -6562,7 +6562,7 @@
             state.config.playerCount =
                 4;
 
-            state.config.players *= [
+            state.config.players = [
                 {
                     id: 'p1',
                     name:
