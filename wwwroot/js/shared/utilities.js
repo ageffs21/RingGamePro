@@ -21,3 +21,16 @@ function escapeHTML(str) {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
 }
+
+
+/**
+ * Escape a value before inserting it inside a single-quoted
+ * inline JavaScript argument.
+ */
+function escapeJavaScriptString(value) {
+    return String(value)
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'")
+        .replace(/\r/g, '\\r')
+        .replace(/\n/g, '\\n');
+}
