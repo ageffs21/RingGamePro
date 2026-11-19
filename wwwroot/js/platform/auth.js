@@ -176,6 +176,25 @@ async function createAccount(
 }
 
 
+async function submitCreateAccount() {
+
+    const displayName =
+        document.getElementById('signup-name')?.value || '';
+
+    const email =
+        document.getElementById('signup-email')?.value || '';
+
+    const password =
+        document.getElementById('signup-password')?.value || '';
+
+    await createAccount(
+        email,
+        password,
+        displayName
+    );
+}
+
+
 /**
  * Sign into an existing PoolApp account.
  */
@@ -223,6 +242,52 @@ async function signInUser(email, password) {
             : ''
         }!`,
         'success'
+    );
+}
+
+
+async function submitSignIn() {
+
+    const email =
+        document.getElementById('signin-email')?.value || '';
+
+    const password =
+        document.getElementById('signin-password')?.value || '';
+
+    await signInUser(
+        email,
+        password
+    );
+}
+
+
+/**
+ * Sign out of PoolApp.
+ */
+async function signOutUser() {
+    const { error } =
+        await supabaseClient.auth.signOut();
+
+    if (error) {
+        console.error('Sign out failed:', error);
+
+        showToast(
+            'Could not sign out.',
+            'danger'
+        );
+
+        return;
+    }
+
+    currentUser = null;
+    currentProfile = null;
+
+    closeModal();
+    render();
+
+    showToast(
+        'Signed out successfully.',
+        'info'
     );
 }
 
@@ -295,35 +360,4 @@ async function ensureCurrentUserProfile(displayName = '') {
     }
 
     currentProfile = data;
-}
-
-
-/**
- * Sign out of PoolApp.
- */
-async function signOutUser() {
-    const { error } =
-        await supabaseClient.auth.signOut();
-
-    if (error) {
-        console.error('Sign out failed:', error);
-
-        showToast(
-            'Could not sign out.',
-            'danger'
-        );
-
-        return;
-    }
-
-    currentUser = null;
-    currentProfile = null;
-
-    closeModal();
-    render();
-
-    showToast(
-        'Signed out successfully.',
-        'info'
-    );
 }
