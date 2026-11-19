@@ -53,43 +53,9 @@
 
 const APP_VERSION = '0.5.5';
 
-
-/*
-* Current Supabase Realtime lobby subscription.
-*/
-let onlineLobbyChannel = null;
-let onlineGameChannel = null;
 let activeTab = 'table'; // 'table' | 'racks' | 'ledger' | 'history'
 let dragSourceIndex = null;
 let editingRackNumber = null;
-
-
-/**
-* Generate a short human-readable game join code.
-*
-* Ambiguous characters such as O/0 and I/1 are intentionally
-* omitted so codes are easier to read across a pool table.
-*/
-function generateJoinCode(length = 6) {
-
-    const characters =
-        'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-
-    let code = '';
-
-    for (let i = 0; i < length; i++) {
-
-        code +=
-            characters[
-            Math.floor(
-                Math.random() *
-                characters.length
-            )
-            ];
-    }
-
-    return code;
-}
 
 
 /**
@@ -784,50 +750,6 @@ async function subscribeToOnlineGame(gameId) {
 
 
 /**
-* Copy the setup lobby's join code.
-*/
-async function copySetupJoinCode() {
-
-    const code =
-        state.config?.joinCode;
-
-    if (!code) {
-        showToast(
-            'No join code is available.',
-            'warning'
-        );
-
-        return;
-    }
-
-
-    try {
-
-        await navigator.clipboard.writeText(
-            code
-        );
-
-        showToast(
-            `Join code ${code} copied.`,
-            'success'
-        );
-
-    } catch (error) {
-
-        console.error(
-            'Could not copy join code:',
-            error
-        );
-
-        showToast(
-            `Join code: ${code}`,
-            'info'
-        );
-    }
-}
-
-
-/**
 * START GAME
 */
 async function startMatch() {
@@ -1343,7 +1265,7 @@ function openManagePlayersModal() {
                             </div>
 
                             <button
-                              onclick="copyGameJoinCode()"
+                              onclick="copyJoinCode(state.config?.joinCode)"
                               class="shrink-0 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition"
                             >
                               Copy Code
@@ -1520,6 +1442,7 @@ function openManagePlayersModal() {
             `);
 }
 
+
 /**
 * Convert the current local Ring Game into an online game.
 */
@@ -1556,49 +1479,6 @@ async function makeCurrentGameOnline() {
     render();
 
     openManagePlayersModal();
-}
-
-
-/**
- * Copy the current game's join code.
- */
-async function copyGameJoinCode() {
-
-    const code =
-        state.game?.joinCode;
-
-    if (!code) {
-        showToast(
-            'No join code is available.',
-            'warning'
-        );
-
-        return;
-    }
-
-    try {
-
-        await navigator.clipboard.writeText(
-            code
-        );
-
-        showToast(
-            `Join code ${code} copied.`,
-            'success'
-        );
-
-    } catch (error) {
-
-        console.error(
-            'Could not copy join code:',
-            error
-        );
-
-        showToast(
-            `Join code: ${code}`,
-            'info'
-        );
-    }
 }
 
 
@@ -2371,83 +2251,6 @@ async function declineActiveGameJoinRequest(
         'Join request declined.',
         'info'
     );
-}
-
-
-/**
-* Load the current online lobby roster from Supabase.
-*/
-async function loadOnlineLobbyRoster(gameId) {
-
-    if (!gameId) {
-        return false;
-    }
-
-
-    const {
-        data,
-        error
-    } =
-        await supabaseClient
-            .from('game_players')
-            .select('*')
-            .eq(
-                'game_id',
-                gameId
-            )
-            .eq(
-                'status',
-                'active'
-            )
-            .order(
-                'shooting_order',
-                {
-                    ascending: true
-                }
-            );
-
-
-    if (error) {
-
-        console.error(
-            'Could not load online lobby roster:',
-            error
-        );
-
-        return false;
-    }
-
-
-    state.config.players =
-        data.map(player => ({
-
-            /*
-             * game_players.id is ideal as the lobby ID
-             * because it uniquely identifies this person's
-             * participation in this particular match.
-             */
-            id:
-                player.id,
-
-            userId:
-                player.user_id,
-
-            name:
-                player.display_name,
-
-            isGuest:
-                !player.user_id
-
-        }));
-
-
-    state.config.playerCount =
-        state.config.players.length;
-
-
-    saveState();
-
-    return true;
 }
 
 

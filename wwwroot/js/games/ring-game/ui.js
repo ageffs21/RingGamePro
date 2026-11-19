@@ -64,7 +64,7 @@ function renderSetupView() {
                             <div class="flex flex-col sm:flex-row gap-2">
 
                               <button
-                                onclick="copySetupJoinCode()"
+                                onclick="copyJoinCode(state.config?.joinCode)"
                                 class="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold transition"
                               >
                                 Copy Code
