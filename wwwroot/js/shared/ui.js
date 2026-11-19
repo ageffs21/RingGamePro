@@ -41,3 +41,10 @@ function openModal(html) {
 function closeModal() {
     document.getElementById('modal-backdrop').classList.add('hidden');
 }
+
+
+document.getElementById('modal-backdrop').addEventListener('click', (e) => {
+    if (e.target.id === 'modal-backdrop') {
+        closeModal();
+    }
+});

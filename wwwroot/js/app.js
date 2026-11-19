@@ -133,13 +133,6 @@ function render() {
     }
 }
 
-
-document.getElementById('modal-backdrop').addEventListener('click', (e) => {
-    if (e.target.id === 'modal-backdrop') {
-        closeModal();
-    }
-});
-
 /*
  * ---------------------------------------------------------
  * INITIAL APPLICATION STARTUP
