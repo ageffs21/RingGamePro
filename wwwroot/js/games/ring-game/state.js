@@ -83,7 +83,8 @@ function confirmResetModal() {
 async function resetToSetup() {
 
     /*
-     * Capture the cloud ID before clearing state.game.
+     * Capture the cloud identity before resetting
+     * the local Ring Game.
      */
     const cloudGameId =
         state.game?.cloudGameId ||
@@ -98,57 +99,22 @@ async function resetToSetup() {
 
 
     /*
-     * Mark the online database record completed.
+     * Complete the corresponding cloud game first.
      */
     if (cloudGameId) {
+
         await completeCurrentCloudGame(
             cloudGameId,
             finalGameState
         );
+
     }
 
 
     /*
-     * Remove the completed local match.
+     * Return this device to a clean Ring Game setup.
      */
-    state.game = null;
-
-    state.view = 'setup';
-
-    activeTab = 'table';
-
-
-    /*
-     * Clear the old online lobby.
-     *
-     * This is the part that prevents the next game from
-     * automatically reusing the previous lobby.
-     */
-    state.config.isOnline = false;
-
-    state.config.onlineGameId = null;
-
-    state.config.joinCode = null;
-
-    state.config.onlineRole = null;
-
-    /*
-     * Restore the signed-in user as Player 1.
-     */
-    if (
-        currentUser &&
-        currentProfile &&
-        state.config.players.length > 0
-    ) {
-        state.config.players[0].name =
-            currentProfile.display_name;
-
-        state.config.players[0].userId =
-            currentUser.id;
-
-        state.config.players[0].isGuest =
-            false;
-    }
+    resetRingGameToOfflineSetup();
 
 
     saveState();
@@ -162,4 +128,62 @@ async function resetToSetup() {
         'Match completed.',
         'success'
     );
+}
+
+
+/**
+ * Return Ring Game to a clean offline setup state.
+ *
+ * This only resets local Ring Game/session state.
+ * Cloud completion, cancellation, settlements, and
+ * realtime disconnection remain the responsibility
+ * of the caller.
+ */
+function resetRingGameToOfflineSetup() {
+
+    state.game = null;
+
+    state.view = 'setup';
+
+    state.config.isOnline = false;
+    state.config.onlineGameId = null;
+    state.config.joinCode = null;
+    state.config.onlineRole = null;
+
+    state.config.playerCount = 4;
+
+    state.config.players = [
+        {
+            id: 'p1',
+            name:
+                currentProfile?.display_name ||
+                'Player 1',
+
+            userId:
+                currentUser?.id || null,
+
+            isGuest:
+                !currentUser
+        },
+        {
+            id: 'p2',
+            name: 'Player 2',
+            userId: null,
+            isGuest: true
+        },
+        {
+            id: 'p3',
+            name: 'Player 3',
+            userId: null,
+            isGuest: true
+        },
+        {
+            id: 'p4',
+            name: 'Player 4',
+            userId: null,
+            isGuest: true
+        }
+    ];
+
+    activeTab = 'table';
 }

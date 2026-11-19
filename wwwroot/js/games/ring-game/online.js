@@ -1807,57 +1807,16 @@ async function abandonOnlineLobby() {
 
 
     /*
-     * Return setup to normal offline mode.
-     */
-    state.config.isOnline = false;
-    state.config.onlineGameId = null;
-    state.config.joinCode = null;
-    state.config.onlineRole = null;
-
-
-    /*
-     * Restore a normal four-player offline setup.
-     */
-    state.config.playerCount = 4;
-
-    state.config.players = [
-        {
-            id: 'p1',
-
-            name:
-                currentProfile?.display_name ||
-                'Player 1',
-
-            userId:
-                currentUser?.id || null,
-
-            isGuest:
-                !currentUser
-        },
-
-        {
-            id: 'p2',
-            name: 'Player 2'
-        },
-
-        {
-            id: 'p3',
-            name: 'Player 3'
-        },
-
-        {
-            id: 'p4',
-            name: 'Player 4'
-        }
-    ];
-
+    * Return this device to a clean offline
+    * Ring Game setup.
+    */
+    resetRingGameToOfflineSetup();
 
     saveState();
 
     closeModal();
 
     render();
-
 
     showToast(
         'Online lobby abandoned.',
@@ -1991,61 +1950,17 @@ async function leaveOnlineLobby() {
         onlineGameChannel = null;
     }
 
-
     /*
-     * Clear lobby identity from this phone.
-     */
-    state.config.isOnline = false;
-    state.config.onlineGameId = null;
-    state.config.joinCode = null;
-    state.config.onlineRole = null;
-
-
-    /*
-     * Restore a normal offline setup.
-     */
-    state.config.playerCount = 4;
-
-    state.config.players = [
-        {
-            id: 'p1',
-            name:
-                currentProfile?.display_name ||
-                'Player 1',
-            userId:
-                currentUser.id,
-            isGuest: false
-        },
-
-        {
-            id: 'p2',
-            name: 'Player 2',
-            userId: null,
-            isGuest: true
-        },
-
-        {
-            id: 'p3',
-            name: 'Player 3',
-            userId: null,
-            isGuest: true
-        },
-
-        {
-            id: 'p4',
-            name: 'Player 4',
-            userId: null,
-            isGuest: true
-        }
-    ];
-
+    * Return this device to a clean offline
+    * Ring Game setup.
+    */
+    resetRingGameToOfflineSetup();
 
     saveState();
 
     closeModal();
 
     render();
-
 
     showToast(
         'You left the online lobby.',
@@ -2054,9 +1969,13 @@ async function leaveOnlineLobby() {
 }
 
 
-async function handleCompletedOnlineGame(
-    updatedGame
-) {
+/**
+ * Handle completion of an online Ring Game on a participant device.
+ *
+ * The final cloud game state is used to calculate settlement
+ * before the local Ring Game is reset back to offline setup.
+ */
+async function handleCompletedOnlineGame(updatedGame) {
 
     const finalGameState =
         updatedGame.game_state ||
@@ -2069,8 +1988,8 @@ async function handleCompletedOnlineGame(
 
 
     /*
-     * Store the final state long enough to calculate
-     * and display the participant's settlement.
+     * Temporarily apply the authoritative final game state
+     * so settlement calculations use the host's final values.
      */
     state.game =
         finalGameState;
@@ -2084,12 +2003,15 @@ async function handleCompletedOnlineGame(
         );
 
 
+    /*
+     * Calculate settlement BEFORE resetting state.game.
+     */
     const simplified =
         getSimplifiedSettlements();
 
 
     /*
-     * Disconnect from the completed cloud match.
+     * Disconnect from the completed online Ring Game.
      */
     if (onlineLobbyChannel) {
 
@@ -2112,52 +2034,13 @@ async function handleCompletedOnlineGame(
 
 
     /*
-     * Return this device to normal setup BEFORE the
-     * final settlement receipt is displayed.
+     * Return this device to a clean offline setup.
+     *
+     * currentParticipant and simplified are already stored
+     * locally above, so the final settlement can still be
+     * displayed after state.game is cleared.
      */
-    state.game = null;
-
-    state.view = 'setup';
-
-    activeTab = 'table';
-
-    state.config.isOnline = false;
-    state.config.onlineGameId = null;
-    state.config.joinCode = null;
-    state.config.onlineRole = null;
-
-    state.config.playerCount = 4;
-
-    state.config.players = [
-        {
-            id: 'p1',
-            name:
-                currentProfile?.display_name ||
-                'Player 1',
-            userId:
-                currentUser?.id || null,
-            isGuest:
-                !currentUser
-        },
-        {
-            id: 'p2',
-            name: 'Player 2',
-            userId: null,
-            isGuest: true
-        },
-        {
-            id: 'p3',
-            name: 'Player 3',
-            userId: null,
-            isGuest: true
-        },
-        {
-            id: 'p4',
-            name: 'Player 4',
-            userId: null,
-            isGuest: true
-        }
-    ];
+    resetRingGameToOfflineSetup();
 
 
     saveState();
@@ -2165,50 +2048,56 @@ async function handleCompletedOnlineGame(
     render();
 
 
+    /*
+     * Show the final settlement receipt after returning
+     * the application to setup.
+     */
     openModal(`
-                <div class="p-5 sm:p-6">
+        <div class="p-5 sm:p-6">
 
-                    <div class="text-[11px] font-bold uppercase tracking-wider text-emerald-400 mb-1">
-                        Match Complete
-                    </div>
+            <div class="text-[11px] font-bold uppercase tracking-wider text-emerald-400 mb-1">
+                Match Complete
+            </div>
 
-                    <h2 class="text-xl font-extrabold text-white">
-                        Final Settlement
-                    </h2>
+            <h2 class="text-xl font-extrabold text-white">
+                Final Settlement
+            </h2>
 
-                    ${currentParticipant
+            ${currentParticipant
             ? `
-                                <div class="mt-4 rounded-xl bg-slatefelt-950 border border-slatefelt-700 p-4">
+                        <div class="mt-4 rounded-xl bg-slatefelt-950 border border-slatefelt-700 p-4">
 
-                                    <div class="text-xs uppercase tracking-wider text-slate-500 font-bold">
-                                        ${escapeHTML(currentParticipant.name)}
-                                    </div>
+                            <div class="text-xs uppercase tracking-wider text-slate-500 font-bold">
+                                ${escapeHTML(currentParticipant.name)}
+                            </div>
 
-                                    <div class="text-sm text-slate-300 mt-1">
-                                        The host has ended the match.
-                                    </div>
+                            <div class="text-sm text-slate-300 mt-1">
+                                The host has ended the match.
+                            </div>
 
-                                </div>
-                              `
+                        </div>
+                    `
             : ''
         }
 
-
-                    ${simplified.length === 0
+            ${simplified.length === 0
             ? `
-                                <div class="mt-4 rounded-xl bg-slatefelt-850 border border-slatefelt-700 p-4 text-sm text-emerald-300">
-                                    Everyone is square. No remaining payments are required.
-                                </div>
-                              `
+                        <div class="mt-4 rounded-xl bg-slatefelt-850 border border-slatefelt-700 p-4 text-sm text-emerald-300">
+                            Everyone is square. No remaining payments are required.
+                        </div>
+                    `
             : `
-                                <div class="space-y-2 mt-4">
+                        <div class="space-y-2 mt-4">
 
-                                    ${simplified.map(item => `
+                            ${simplified
+                .map(item => `
                                         <div class="flex items-center justify-between gap-3 rounded-xl bg-emerald-950/20 border border-emerald-500/30 px-3.5 py-3">
 
                                             <span class="text-sm text-slate-200">
                                                 ${escapeHTML(item.from.name)}
-                                                <span class="text-slate-500 mx-1">pays</span>
+                                                <span class="text-slate-500 mx-1">
+                                                    pays
+                                                </span>
                                                 ${escapeHTML(item.to.name)}
                                             </span>
 
@@ -2217,23 +2106,25 @@ async function handleCompletedOnlineGame(
                                             </span>
 
                                         </div>
-                                    `).join('')}
+                                    `)
+                .join('')
+            }
 
-                                </div>
-                              `
+                        </div>
+                    `
         }
 
+            <button
+                onclick="closeModal()"
+                class="w-full mt-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm"
+            >
+                Return to Home
+            </button>
 
-                    <button
-                        onclick="closeModal()"
-                        class="w-full mt-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm"
-                    >
-                        Return to Home
-                    </button>
-
-                </div>
-            `);
+        </div>
+    `);
 }
+
 
 /**
 * Publish the host's current Ring Game state to Supabase.
