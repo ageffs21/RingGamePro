@@ -1,4 +1,6 @@
-﻿/**
+﻿let activeTab = 'table'; // 'table' | 'racks' | 'ledger' | 'history'
+
+/**
 * RENDER SETUP VIEW
 */
 function renderSetupView() {

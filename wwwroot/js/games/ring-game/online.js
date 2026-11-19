@@ -2464,3 +2464,174 @@ async function createCloudGame() {
 
     return false;
 }
+
+
+/**
+* Mark the current online game as completed in Supabase.
+*/
+async function completeCurrentCloudGame(
+    cloudGameId,
+    finalGameState
+) {
+
+    if (!cloudGameId) {
+        return true;
+    }
+
+
+    const { error } =
+        await supabaseClient
+            .from('games')
+            .update({
+                status: 'completed',
+                completed_at: new Date().toISOString(),
+                game_state: finalGameState
+            })
+            .eq(
+                'id',
+                cloudGameId
+            );
+
+
+    if (error) {
+
+        console.error(
+            'Could not complete cloud game:',
+            error
+        );
+
+        showToast(
+            'Match ended locally, but the online game could not be marked complete.',
+            'warning'
+        );
+
+        return false;
+    }
+
+
+    return true;
+}
+
+
+/**
+* Create an online lobby from the Match Setup screen.
+*/
+async function createSetupOnlineLobby() {
+
+    if (!currentUser || !currentProfile) {
+        showToast(
+            'Sign in before creating an online lobby.',
+            'warning'
+        );
+
+        return;
+    }
+
+    /*
+     * Prevent accidentally creating a second lobby.
+     */
+    if (
+        state.config.isOnline &&
+        state.config.onlineGameId
+    ) {
+        showToast(
+            `Online lobby already active: ${state.config.joinCode}`,
+            'info'
+        );
+
+        return;
+    }
+
+
+    showToast(
+        'Creating online lobby...',
+        'info'
+    );
+
+
+    const success =
+        await createCloudGame();
+
+
+    if (!success) {
+        return;
+    }
+
+
+    /*
+     * Redraw Setup so the button changes into
+     * the Join Code display.
+     */
+    render();
+}
+
+
+/**
+* Save the local game and synchronize it to Supabase
+* when this device is hosting an online match.
+*/
+async function saveAndSyncGame() {
+
+    saveState();
+
+    if (
+        state.game &&
+        state.game.isOnline &&
+        state.config.onlineRole === 'host'
+    ) {
+        await publishOnlineGameState();
+    }
+}
+
+
+/**
+ * Publish a newly started Ring Game to the cloud.
+ *
+ * Returns true when the game is local or the cloud
+ * update succeeds. Returns false when cloud sync fails.
+ */
+async function publishStartedRingGame() {
+
+    if (
+        !state.game ||
+        !state.game.isOnline ||
+        !state.game.cloudGameId ||
+        state.config.onlineRole !== 'host'
+    ) {
+        return true;
+    }
+
+
+    const {
+        error
+    } =
+        await supabaseClient
+            .from('games')
+            .update({
+                status: 'active',
+                game_state: state.game
+            })
+            .eq(
+                'id',
+                state.game.cloudGameId
+            );
+
+
+    if (error) {
+
+        console.error(
+            'Could not start cloud game:',
+            error
+        );
+
+        showToast(
+            'Match started locally, but cloud sync failed.',
+            'warning'
+        );
+
+        return false;
+    }
+
+
+    return true;
+}

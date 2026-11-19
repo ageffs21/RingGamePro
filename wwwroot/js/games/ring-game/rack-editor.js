@@ -1,6 +1,10 @@
 ﻿/**
 * EDIT / ADJUST PAST RACK MODAL & ACTIONS
 */
+
+let editingRackNumber = null;
+
+
 function openEditRackModal(rackNumber) {
     if (!state.game) return;
     const rack = state.game.racks.find(r => r.rackNumber === rackNumber);

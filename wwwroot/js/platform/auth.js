@@ -361,3 +361,225 @@ async function ensureCurrentUserProfile(displayName = '') {
 
     currentProfile = data;
 }
+
+/**
+* ACCOUNT / SIGN-IN MODAL
+*/
+function openAccountModal() {
+
+    /*
+     * If already signed in, show the current account.
+     */
+    if (currentUser) {
+
+        const displayName =
+            currentProfile?.display_name ||
+            currentUser.email ||
+            'Player';
+
+        openModal(`
+                    <div class="p-5 sm:p-6">
+
+                        <div class="flex items-start justify-between gap-4 mb-5">
+
+                            <div>
+                                <div class="text-[11px] font-bold uppercase tracking-wider text-emerald-400 mb-1">
+                                    PoolApp Account
+                                </div>
+
+                                <h2 class="text-xl font-extrabold text-white">
+                                    ${escapeHTML(displayName)}
+                                </h2>
+                            </div>
+
+                            <button
+                                onclick="closeModal()"
+                                class="shrink-0 w-9 h-9 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-700 text-slate-300 hover:text-white font-bold transition"
+                            >
+                                ✕
+                            </button>
+
+                        </div>
+
+
+                        <div class="bg-slatefelt-950 border border-slatefelt-700 rounded-xl p-4 mb-4">
+
+                            <div class="text-[11px] uppercase tracking-wider text-slate-500 font-bold">
+                                Signed In As
+                            </div>
+
+                            <div class="text-sm text-white mt-1">
+                                ${escapeHTML(currentUser.email || '')}
+                            </div>
+
+                        </div>
+
+
+                        <button
+                            onclick="signOutUser()"
+                            class="w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm transition"
+                        >
+                            Sign Out
+                        </button>
+
+                    </div>
+                `);
+
+        return;
+    }
+
+
+    /*
+     * Signed-out view.
+     */
+    openModal(`
+                <div class="p-5 sm:p-6">
+
+                    <div class="flex items-start justify-between gap-4 mb-5">
+
+                        <div>
+                            <div class="text-[11px] font-bold uppercase tracking-wider text-emerald-400 mb-1">
+                                PoolApp Account
+                            </div>
+
+                            <h2 class="text-xl font-extrabold text-white">
+                                Sign In
+                            </h2>
+
+                            <p class="text-xs text-slate-400 mt-1">
+                                Sign in to save games, stats and tournament history.
+                            </p>
+                        </div>
+
+                        <button
+                            onclick="closeModal()"
+                            class="shrink-0 w-9 h-9 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-700 text-slate-300 hover:text-white font-bold transition"
+                        >
+                            ✕
+                        </button>
+
+                    </div>
+
+
+                    <!-- Sign In -->
+                    <section class="mb-6">
+
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+                            Existing Account
+                        </h3>
+
+
+                        <label class="block text-xs text-slate-400 font-semibold mb-1.5">
+                            Email
+                        </label>
+
+                        <input
+                            id="signin-email"
+                            type="email"
+                            autocomplete="email"
+                            placeholder="you@example.com"
+                            class="w-full bg-slatefelt-950 border border-slatefelt-700 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-slate-600 mb-3"
+                        />
+
+
+                        <label class="block text-xs text-slate-400 font-semibold mb-1.5">
+                            Password
+                        </label>
+
+                        <input
+                            id="signin-password"
+                            type="password"
+                            autocomplete="current-password"
+                            placeholder="Password"
+                            class="w-full bg-slatefelt-950 border border-slatefelt-700 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-slate-600 mb-3"
+                        />
+
+
+                        <button
+                            onclick="submitSignIn()"
+                            class="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm transition"
+                        >
+                            Sign In
+                        </button>
+
+                    </section>
+
+
+                    <div class="flex items-center gap-3 my-5">
+
+                        <div class="h-px bg-slatefelt-700 flex-1"></div>
+
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                            New Player
+                        </span>
+
+                        <div class="h-px bg-slatefelt-700 flex-1"></div>
+
+                    </div>
+
+
+                    <!-- Create Account -->
+                    <section>
+
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+                            Create Account
+                        </h3>
+
+
+                        <label class="block text-xs text-slate-400 font-semibold mb-1.5">
+                            Display Name
+                        </label>
+
+                        <input
+                            id="signup-name"
+                            type="text"
+                            maxlength="30"
+                            autocomplete="nickname"
+                            placeholder="Andrew"
+                            class="w-full bg-slatefelt-950 border border-slatefelt-700 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-slate-600 mb-3"
+                        />
+
+
+                        <label class="block text-xs text-slate-400 font-semibold mb-1.5">
+                            Email
+                        </label>
+
+                        <input
+                            id="signup-email"
+                            type="email"
+                            autocomplete="email"
+                            placeholder="you@example.com"
+                            class="w-full bg-slatefelt-950 border border-slatefelt-700 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-slate-600 mb-3"
+                        />
+
+
+                        <label class="block text-xs text-slate-400 font-semibold mb-1.5">
+                            Password
+                        </label>
+
+                        <input
+                            id="signup-password"
+                            type="password"
+                            autocomplete="new-password"
+                            placeholder="Create a password"
+                            class="w-full bg-slatefelt-950 border border-slatefelt-700 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-slate-600 mb-3"
+                        />
+
+
+                        <button
+                            onclick="submitCreateAccount()"
+                            class="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-sm transition"
+                        >
+                            Create Account
+                        </button>
+
+                    </section>
+
+
+                    <p class="text-[11px] text-slate-500 text-center mt-5">
+                        You can still play Ring Game without creating an account.
+                    </p>
+
+                </div>
+            `);
+}
