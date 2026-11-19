@@ -50,27 +50,6 @@
     }
 })();
 
-/**
-* Pool Ball Color Metadata (Standard WPA / Aramith Colors)
-*/
-const BALL_STYLES = {
-    1: { color: '#eab308', stripe: false, name: 'Yellow' },
-    2: { color: '#2563eb', stripe: false, name: 'Blue' },
-    3: { color: '#dc2626', stripe: false, name: 'Red' },
-    4: { color: '#7c3aed', stripe: false, name: 'Purple' },
-    5: { color: '#f97316', stripe: false, name: 'Orange' },
-    6: { color: '#16a34a', stripe: false, name: 'Green' },
-    7: { color: '#881337', stripe: false, name: 'Maroon' },
-    8: { color: '#1e293b', stripe: false, name: 'Black' },
-    9: { color: '#eab308', stripe: true, name: 'Yellow Stripe' },
-    10: { color: '#2563eb', stripe: true, name: 'Blue Stripe' },
-    11: { color: '#dc2626', stripe: true, name: 'Red Stripe' },
-    12: { color: '#7c3aed', stripe: true, name: 'Purple Stripe' },
-    13: { color: '#f97316', stripe: true, name: 'Orange Stripe' },
-    14: { color: '#16a34a', stripe: true, name: 'Green Stripe' },
-    15: { color: '#881337', stripe: true, name: 'Maroon Stripe' }
-};
-
 
 /*
 * ---------------------------------------------------------
@@ -1250,62 +1229,6 @@ async function copySetupJoinCode() {
             'info'
         );
     }
-}
-
-
-/**
-* Non-blocking Toast Notification
-*/
-function showToast(message, type = 'info') {
-    const container = document.getElementById('toast-container');
-    const toast = document.createElement('div');
-    const colors = {
-        info: 'bg-slatefelt-800 border-slatefelt-700 text-slate-100',
-        success: 'bg-emerald-950/95 border-emerald-500/60 text-emerald-100',
-        warning: 'bg-amber-950/95 border-amber-500/60 text-amber-100',
-        danger: 'bg-rose-950/95 border-rose-500/60 text-rose-100'
-    };
-    toast.className = `px-4 py-2.5 rounded-xl border shadow-xl text-sm font-medium backdrop-blur transition-all duration-300 transform translate-y-2 opacity-0 ${colors[type] || colors.info}`;
-    toast.textContent = message;
-    container.appendChild(toast);
-
-
-    requestAnimationFrame(() => {
-        toast.classList.remove('translate-y-2', 'opacity-0');
-    });
-
-
-    setTimeout(() => {
-        toast.classList.add('opacity-0', 'translate-y-2');
-        setTimeout(() => toast.remove(), 300);
-    }, 2600);
-}
-
-
-/**
-* Helper: Render HTML for an authentic pool ball
-*/
-function renderPoolBallHTML(num, sizeClass = 'w-10 h-10', numSizeClass = 'w-5 h-5 text-xs') {
-    const meta = BALL_STYLES[num] || { color: '#64748b', stripe: false };
-    const stripeClass = meta.stripe ? 'stripe' : '';
-    const bgStyle = meta.stripe ? `--ball-color: ${meta.color};` : `background-color: ${meta.color};`;
-    return `
-            <span class="pool-ball ${stripeClass} ${sizeClass}" style="${bgStyle}">
-                <span class="pool-ball-number ${numSizeClass}">${num}</span>
-            </span>
-            `;
-}
-
-
-/**
-* Helper: Currency Formatting
-*/
-function formatMoney(amount, showPlus = false) {
-    const num = Number(amount) || 0;
-    const absStr = Math.abs(num).toFixed(2);
-    if (num < 0) return `-$${absStr}`;
-    if (num > 0 && showPlus) return `+$${absStr}`;
-    return `$${absStr}`;
 }
 
 
@@ -2524,22 +2447,6 @@ function getPlayerExitSettlement(playerId) {
     }
 
     return transactions;
-}
-
-
-/**
-* MODALS (End Game Summary & Reset Confirmation)
-*/
-function openModal(html) {
-    const backdrop = document.getElementById('modal-backdrop');
-    const content = document.getElementById('modal-content');
-    content.innerHTML = html;
-    backdrop.classList.remove('hidden');
-}
-
-
-function closeModal() {
-    document.getElementById('modal-backdrop').classList.add('hidden');
 }
 
 
@@ -7124,19 +7031,6 @@ function handleDrop(e, targetIndex) {
     dragSourceIndex = null;
     saveState();
     render();
-}
-
-
-/**
-* XSS Escaping Helper
-*/
-function escapeHTML(str) {
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
 }
 
 
