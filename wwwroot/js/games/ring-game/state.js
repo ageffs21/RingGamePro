@@ -8,28 +8,47 @@ const STORAGE_KEY = 'ringgame_pro_state_v1';
 * Default Application State
 */
 function getDefaultState() {
+
     return {
-        view: 'setup', // 'setup' | 'live'
+
+        view: 'setup',
+
         config: {
+
             onlineGameId: null,
             joinCode: null,
             isOnline: false,
             onlineRole: null,
+
             playerCount: 4,
-            players: [
-                { id: 'p1', name: 'Player 1' },
-                { id: 'p2', name: 'Player 2' },
-                { id: 'p3', name: 'Player 3' },
-                { id: 'p4', name: 'Player 4' }
-            ],
-            format: '10-ball', // '9-ball' | '10-ball' | 'custom'
+
+            /*
+             * Initial application state is intentionally
+             * authentication-neutral. The authenticated
+             * profile is applied after Supabase restores
+             * the user session.
+             */
+            players:
+                createDefaultRingGamePlayers(false),
+
+            format:
+                '10-ball',
+
             moneyBalls: [
-                { ball: 5, value: 0.25 },
-                { ball: 10, value: 0.50 }
+                {
+                    ball: 5,
+                    value: 0.25
+                },
+                {
+                    ball: 10,
+                    value: 0.50
+                }
             ],
+
             useBuyIn: false,
             buyInAmount: 20
         },
+
         game: null
     };
 }
@@ -152,7 +171,29 @@ function resetRingGameToOfflineSetup() {
 
     state.config.playerCount = 4;
 
-    state.config.players = [
+    state.config.players =
+        createDefaultRingGamePlayers();
+
+    activeTab = 'table';
+}
+
+
+/**
+ * Create the default four-player Ring Game setup roster.
+ *
+ * includeCurrentUser should only be used after authentication
+ * has been restored.
+ */
+function createDefaultRingGamePlayers(
+    includeCurrentUser = true
+) {
+
+    const useCurrentUser =
+        includeCurrentUser &&
+        currentUser &&
+        currentProfile;
+
+    return [
         {
             id: 'p1',
             name:
@@ -184,6 +225,4 @@ function resetRingGameToOfflineSetup() {
             isGuest: true
         }
     ];
-
-    activeTab = 'table';
 }

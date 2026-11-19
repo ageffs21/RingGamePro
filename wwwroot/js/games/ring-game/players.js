@@ -986,24 +986,7 @@ async function handleOnlinePlayerDeparture(
     /*
      * Stop listening to the completed participation.
      */
-    if (onlineLobbyChannel) {
-
-        await supabaseClient.removeChannel(
-            onlineLobbyChannel
-        );
-
-        onlineLobbyChannel = null;
-    }
-
-
-    if (onlineGameChannel) {
-
-        await supabaseClient.removeChannel(
-            onlineGameChannel
-        );
-
-        onlineGameChannel = null;
-    }
+    await disconnectSessionChannels();
 
 
     /*

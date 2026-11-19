@@ -73,3 +73,30 @@ async function copyJoinCode(code) {
         );
     }
 }
+
+
+/**
+ * Disconnect this device from all active realtime
+ * session subscriptions.
+ */
+async function disconnectSessionChannels() {
+
+    if (onlineLobbyChannel) {
+
+        await supabaseClient.removeChannel(
+            onlineLobbyChannel
+        );
+
+        onlineLobbyChannel = null;
+    }
+
+
+    if (onlineGameChannel) {
+
+        await supabaseClient.removeChannel(
+            onlineGameChannel
+        );
+
+        onlineGameChannel = null;
+    }
+}

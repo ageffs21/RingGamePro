@@ -1408,21 +1408,12 @@ async function joinOnlineGameByCode() {
     if (alreadyJoined) {
 
         /*
-         * Attach this phone to the existing lobby first.
-         */
-        state.config.onlineGameId =
-            gameData.id;
-
-        state.config.joinCode =
-            gameData.join_code;
-
-        state.config.isOnline =
-            true;
-
-        state.config.onlineRole =
-            gameData.host_id === currentUser.id
-                ? 'host'
-                : 'player';
+        * Attach this device to the existing
+        * online Ring Game.
+        */
+        attachRingGameToOnlineSession(
+            gameData
+        );
 
 
         /*
@@ -1518,19 +1509,9 @@ async function joinOnlineGameByCode() {
     /*
      * This phone is now attached to that lobby.
      */
-    state.config.onlineGameId =
-        gameData.id;
-
-    state.config.joinCode =
-        gameData.join_code;
-
-    state.config.isOnline =
-        true;
-
-    state.config.onlineRole =
-        gameData.host_id === currentUser.id
-            ? 'host'
-            : 'player';
+    attachRingGameToOnlineSession(
+        gameData
+    );
 
 
     /*
@@ -1928,32 +1909,10 @@ async function leaveOnlineLobby() {
     }
 
 
-    /*
-     * Disconnect this device from the cloud lobby.
-     */
-    if (onlineLobbyChannel) {
+    // Disconnect realtime.
+    await disconnectSessionChannels();
 
-        await supabaseClient.removeChannel(
-            onlineLobbyChannel
-        );
-
-        onlineLobbyChannel = null;
-    }
-
-
-    if (onlineGameChannel) {
-
-        await supabaseClient.removeChannel(
-            onlineGameChannel
-        );
-
-        onlineGameChannel = null;
-    }
-
-    /*
-    * Return this device to a clean offline
-    * Ring Game setup.
-    */
+    // Reset local Ring Game.
     resetRingGameToOfflineSetup();
 
     saveState();
@@ -2009,29 +1968,11 @@ async function handleCompletedOnlineGame(updatedGame) {
     const simplified =
         getSimplifiedSettlements();
 
-
     /*
-     * Disconnect from the completed online Ring Game.
-     */
-    if (onlineLobbyChannel) {
-
-        await supabaseClient.removeChannel(
-            onlineLobbyChannel
-        );
-
-        onlineLobbyChannel = null;
-    }
-
-
-    if (onlineGameChannel) {
-
-        await supabaseClient.removeChannel(
-            onlineGameChannel
-        );
-
-        onlineGameChannel = null;
-    }
-
+    * Disconnect this device from all realtime
+    * session subscriptions.
+    */
+    await disconnectSessionChannels();
 
     /*
      * Return this device to a clean offline setup.
@@ -2041,7 +1982,6 @@ async function handleCompletedOnlineGame(updatedGame) {
      * displayed after state.game is cleared.
      */
     resetRingGameToOfflineSetup();
-
 
     saveState();
 
@@ -2525,4 +2465,30 @@ async function publishStartedRingGame() {
 
 
     return true;
+}
+
+
+/**
+ * Attach this device's Ring Game setup state to an
+ * existing online cloud game.
+ */
+function attachRingGameToOnlineSession(gameData) {
+
+    if (!gameData) {
+        return;
+    }
+
+    state.config.onlineGameId =
+        gameData.id;
+
+    state.config.joinCode =
+        gameData.join_code;
+
+    state.config.isOnline =
+        true;
+
+    state.config.onlineRole =
+        gameData.host_id === currentUser?.id
+            ? 'host'
+            : 'player';
 }
