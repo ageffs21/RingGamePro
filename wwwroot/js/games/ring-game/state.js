@@ -54,17 +54,119 @@ function getDefaultState() {
 }
 
 
+/**
+ * Load Ring Game state from local storage.
+ *
+ * Saved state is merged with the current defaults so older
+ * saved versions automatically receive newly added settings.
+ */
 function loadState() {
+
     try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-            const parsed = JSON.parse(raw);
-            if (parsed && parsed.config) return parsed;
+
+        const raw =
+            localStorage.getItem(STORAGE_KEY);
+
+
+        if (!raw) {
+            return getDefaultState();
         }
-    } catch (e) {
-        console.error('Failed to load saved state:', e);
+
+
+        const parsed =
+            JSON.parse(raw);
+
+
+        if (
+            !parsed ||
+            typeof parsed !== 'object' ||
+            !parsed.config ||
+            typeof parsed.config !== 'object'
+        ) {
+
+            console.warn(
+                'Saved Ring Game state is invalid. Using defaults.'
+            );
+
+            return getDefaultState();
+        }
+
+
+        /*
+         * Start with today's known-good state structure.
+         */
+        const defaults =
+            getDefaultState();
+
+
+        /*
+         * Merge the saved configuration over current defaults.
+         *
+         * This preserves existing user settings while ensuring
+         * newly introduced config properties are available.
+         */
+        const mergedConfig = {
+            ...defaults.config,
+            ...parsed.config
+        };
+
+
+        /*
+         * Players require a valid array.
+         */
+        if (
+            !Array.isArray(mergedConfig.players) ||
+            mergedConfig.players.length === 0
+        ) {
+
+            mergedConfig.players =
+                defaults.config.players;
+
+            mergedConfig.playerCount =
+                defaults.config.playerCount;
+        }
+
+
+        /*
+         * Money balls also require a valid array.
+         */
+        if (
+            !Array.isArray(mergedConfig.moneyBalls) ||
+            mergedConfig.moneyBalls.length === 0
+        ) {
+
+            mergedConfig.moneyBalls =
+                defaults.config.moneyBalls;
+        }
+
+
+        return {
+            ...defaults,
+            ...parsed,
+
+            config:
+                mergedConfig,
+
+            /*
+             * Preserve a valid saved live game.
+             * Otherwise there is no active game.
+             */
+            game:
+                parsed.game &&
+                    typeof parsed.game === 'object'
+                    ? parsed.game
+                    : null
+        };
+
+    } catch (error) {
+
+        console.error(
+            'Failed to load saved Ring Game state:',
+            error
+        );
+
+        return getDefaultState();
     }
-    return getDefaultState();
 }
 
 
@@ -122,7 +224,7 @@ async function resetToSetup() {
      */
     if (cloudGameId) {
 
-        await completeCurrentCloudGame(
+        await completeOnlineRingGame(
             cloudGameId,
             finalGameState
         );

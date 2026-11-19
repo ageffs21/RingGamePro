@@ -1407,42 +1407,21 @@ async function joinOnlineGameByCode() {
 
     if (alreadyJoined) {
 
-        /*
-        * Attach this device to the existing
-        * online Ring Game.
-        */
-        attachRingGameToOnlineSession(
-            gameData
-        );
+        const connected =
+            await connectToOnlineRingGame(
+                gameData
+            );
 
 
-        /*
-         * Then load the authoritative roster.
-         */
-        await loadOnlineLobbyRoster(
-            gameData.id
-        );
+        if (!connected) {
 
+            showToast(
+                'Could not reconnect to the game.',
+                'danger'
+            );
 
-        /*
-         * Listen for future roster changes.
-         */
-        await subscribeToOnlineLobby(
-            gameData.id
-        );
-
-
-        /*
-         * Listen for the host starting/completing the game.
-         */
-        await subscribeToOnlineGame(
-            gameData.id
-        );
-
-
-        saveState();
-
-        render();
+            return;
+        }
 
 
         showToast(
@@ -1506,41 +1485,21 @@ async function joinOnlineGameByCode() {
     }
 
 
-    /*
-     * This phone is now attached to that lobby.
-     */
-    attachRingGameToOnlineSession(
-        gameData
-    );
+    const connected =
+        await connectToOnlineRingGame(
+            gameData
+        );
 
 
-    /*
-     * Pull the authoritative lobby roster from Supabase.
-     */
-    await loadOnlineLobbyRoster(
-        gameData.id
-    );
+    if (!connected) {
 
-    /*
-    * Listen for future players joining, leaving,
-    * or being added by the host.
-    */
-    await subscribeToOnlineLobby(
-        gameData.id
-    );
+        showToast(
+            'You joined the game, but could not connect to the lobby.',
+            'warning'
+        );
 
-
-    /*
-     * Listen for changes to the game itself,
-     * such as the host starting the match.
-     */
-    await subscribeToOnlineGame(
-        gameData.id
-    );
-
-    saveState();
-
-    render();
+        return;
+    }
 
 
     showToast(
@@ -2298,9 +2257,10 @@ async function createCloudGame() {
 
 
 /**
-* Mark the current online game as completed in Supabase.
-*/
-async function completeCurrentCloudGame(
+ * Mark an online Ring Game as completed and publish
+ * its final authoritative game state.
+ */
+async function completeOnlineRingGame(
     cloudGameId,
     finalGameState
 ) {
@@ -2327,7 +2287,7 @@ async function completeCurrentCloudGame(
     if (error) {
 
         console.error(
-            'Could not complete cloud game:',
+            'Could not complete online Ring Game:',
             error
         );
 
@@ -2342,7 +2302,6 @@ async function completeCurrentCloudGame(
 
     return true;
 }
-
 
 /**
 * Create an online lobby from the Match Setup screen.
@@ -2491,4 +2450,61 @@ function attachRingGameToOnlineSession(gameData) {
         gameData.host_id === currentUser?.id
             ? 'host'
             : 'player';
+}
+
+/**
+ * Finish attaching this device to an online Ring Game.
+ *
+ * Reloads the authoritative lobby roster, establishes
+ * realtime subscriptions, saves local state, and redraws
+ * the current view.
+ */
+async function connectToOnlineRingGame(gameData) {
+
+    if (!gameData?.id) {
+        return false;
+    }
+
+
+    /*
+     * Store this device's online session identity.
+     */
+    attachRingGameToOnlineSession(
+        gameData
+    );
+
+
+    /*
+     * Replace the cached lobby roster with the
+     * authoritative Supabase roster.
+     */
+    const rosterLoaded =
+        await loadOnlineLobbyRoster(
+            gameData.id
+        );
+
+
+    if (!rosterLoaded) {
+        return false;
+    }
+
+
+    /*
+     * Establish realtime subscriptions for both
+     * participation and game-state changes.
+     */
+    await subscribeToOnlineLobby(
+        gameData.id
+    );
+
+    await subscribeToOnlineGame(
+        gameData.id
+    );
+
+
+    saveState();
+
+    render();
+
+    return true;
 }
