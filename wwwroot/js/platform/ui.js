@@ -510,8 +510,12 @@ function renderActiveGameCard() {
     }
 
 
+    const game =
+        state.game;
+
+
     const activePlayers =
-        state.game.players.filter(
+        game.players.filter(
             player =>
                 player.active !== false &&
                 !player.eliminated
@@ -519,15 +523,45 @@ function renderActiveGameCard() {
 
 
     const gameType =
-        state.game.format
-            ? state.game.format.toUpperCase()
+        game.format
+            ? game.format.toUpperCase()
             : 'RING GAME';
 
 
     const onlineLabel =
-        state.game.isOnline
+        game.isOnline
             ? 'Online'
             : 'Local';
+
+
+    const currentShooter =
+        game.players[
+        game.currentShooterIndex
+        ] || null;
+
+
+    /*
+     * Find this signed-in user's participant record.
+     *
+     * userId remains the permanent identity even if the
+     * player's display name changes.
+     */
+    const currentUserPlayer =
+        currentUser
+            ? game.players.find(
+                player =>
+                    player.userId ===
+                    currentUser.id
+            )
+            : null;
+
+
+    const currentUserBalance =
+        currentUserPlayer
+            ? getAdjustedPlayerNetBalance(
+                currentUserPlayer.id
+            )
+            : null;
 
 
     return `
@@ -542,11 +576,11 @@ function renderActiveGameCard() {
                     </div>
 
                     <div class="text-xl font-extrabold text-white mt-1">
-                        ${gameType}
+                        ${escapeHTML(gameType)}
                     </div>
 
                     <div class="text-sm text-slate-400 mt-1">
-                        Rack #${state.game.rackNumber}
+                        Rack #${game.rackNumber}
                         • ${activePlayers.length} Players
                         • ${onlineLabel}
                     </div>
@@ -554,19 +588,89 @@ function renderActiveGameCard() {
                 </div>
 
 
-                <div class="w-3 h-3 rounded-full bg-emerald-400 mt-1"></div>
+                <div
+                    class="w-3 h-3 rounded-full bg-emerald-400 mt-1 shrink-0"
+                    title="Active Game"
+                ></div>
 
             </div>
 
 
-            ${state.game.isOnline &&
-            state.game.joinCode
+            <div class="grid grid-cols-2 gap-2 mt-4">
+
+                <div class="rounded-xl bg-slatefelt-950/70 border border-slatefelt-700 p-3">
+
+                    <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        Current Shooter
+                    </div>
+
+                    <div class="text-sm font-bold text-white mt-1 truncate">
+                        ${currentShooter
+            ? escapeHTML(currentShooter.name)
+            : '—'
+        }
+                    </div>
+
+                </div>
+
+
+                <div class="rounded-xl bg-slatefelt-950/70 border border-slatefelt-700 p-3">
+
+                    <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        ${currentUserPlayer
+            ? 'Your Balance'
+            : 'Game Status'
+        }
+                    </div>
+
+                    <div class="text-sm font-bold mt-1
+                        ${currentUserBalance > 0
+            ? 'text-emerald-300'
+            : currentUserBalance < 0
+                ? 'text-rose-300'
+                : 'text-white'
+        }"
+                    >
+                        ${currentUserPlayer
+            ? formatMoney(
+                currentUserBalance,
+                true
+            )
+            : 'In Progress'
+        }
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            ${game.isOnline &&
+            game.joinCode
             ? `
-                        <div class="mt-3 text-xs text-slate-400">
-                            Join Code:
-                            <span class="font-mono font-bold text-white">
-                                ${escapeHTML(state.game.joinCode)}
-                            </span>
+                        <div class="flex items-center justify-between gap-3 mt-4 px-3 py-2.5 rounded-xl bg-slatefelt-950/60 border border-slatefelt-700">
+
+                            <div>
+
+                                <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                    Join Code
+                                </div>
+
+                                <div class="font-mono font-extrabold tracking-[0.15em] text-white mt-0.5">
+                                    ${escapeHTML(game.joinCode)}
+                                </div>
+
+                            </div>
+
+
+                            <button
+                                type="button"
+                                onclick="copyJoinCode('${escapeJavaScriptString(game.joinCode)}')"
+                                class="px-3 py-2 rounded-lg bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-700 text-slate-200 text-xs font-bold"
+                            >
+                                Copy
+                            </button>
+
                         </div>
                     `
             : ''
