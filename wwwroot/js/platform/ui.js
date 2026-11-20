@@ -283,10 +283,10 @@ function renderPlatformHome() {
 
                 <button
                     type="button"
-                    disabled
-                    class="w-full mt-3 py-2.5 rounded-xl bg-slatefelt-800 border border-slatefelt-700 text-slate-500 font-bold text-sm opacity-60 cursor-not-allowed"
+                    onclick="openQrScanner()"
+                    class="w-full mt-3 py-2.5 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-700 text-slate-200 font-bold text-sm transition"
                 >
-                    Scan QR Code — Coming Next
+                    Scan QR Code
                 </button>
 
             </div>

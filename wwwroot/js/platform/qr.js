@@ -3,6 +3,366 @@
 // =========================================================
 
 // ---------------------------------------------------------
+// QR Scanner State
+// ---------------------------------------------------------
+
+let qrScannerStream = null;
+let qrScannerActive = false;
+
+/**
+ * Open the Platform QR scanner and request the rear camera.
+ */
+async function openQrScanner() {
+
+    if (
+        !navigator.mediaDevices ||
+        !navigator.mediaDevices.getUserMedia
+    ) {
+
+        showToast(
+            'Camera access is not available on this device.',
+            'warning'
+        );
+
+        return;
+    }
+
+
+    if (!('BarcodeDetector' in window)) {
+
+        showToast(
+            'QR scanning is not supported by this browser yet.',
+            'warning'
+        );
+
+        return;
+    }
+
+
+    openModal(`
+        <div class="p-5 sm:p-6">
+
+            <div class="text-xs font-bold uppercase tracking-wider text-blue-400">
+                Join Online
+            </div>
+
+            <h2 class="text-xl font-extrabold text-white mt-1">
+                Scan QR Code
+            </h2>
+
+            <p class="text-sm text-slate-400 mt-2">
+                Point the camera at a Pool Platform join QR code.
+            </p>
+
+
+            <div class="mt-4 overflow-hidden rounded-2xl bg-black border border-slatefelt-700">
+
+                <video
+                    id="qr-scanner-video"
+                    autoplay
+                    muted
+                    playsinline
+                    class="w-full aspect-square object-cover"
+                ></video>
+
+            </div>
+
+
+            <div
+                id="qr-scanner-status"
+                class="text-center text-sm text-slate-400 mt-3"
+            >
+                Starting camera...
+            </div>
+
+
+            <button
+                type="button"
+                onclick="closeQrScanner()"
+                class="w-full mt-4 py-3 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-700 text-slate-200 font-bold text-sm"
+            >
+                Cancel
+            </button>
+
+        </div>
+    `);
+
+
+    const video =
+        document.getElementById(
+            'qr-scanner-video'
+        );
+
+
+    const status =
+        document.getElementById(
+            'qr-scanner-status'
+        );
+
+
+    if (!video) {
+        closeModal();
+        return;
+    }
+
+
+    try {
+
+        qrScannerStream =
+            await navigator.mediaDevices
+                .getUserMedia({
+                    video: {
+                        facingMode: {
+                            ideal: 'environment'
+                        }
+                    },
+                    audio: false
+                });
+
+
+        video.srcObject =
+            qrScannerStream;
+
+
+        await video.play();
+
+
+        qrScannerActive =
+            true;
+
+
+        if (status) {
+            status.textContent =
+                'Looking for QR code...';
+        }
+
+
+        await scanQrVideo(
+            video
+        );
+
+    } catch (error) {
+
+        console.error(
+            'Could not start QR scanner:',
+            error
+        );
+
+
+        if (status) {
+
+            status.textContent =
+                'Camera could not be started.';
+
+        }
+
+
+        showToast(
+            'Camera permission is required to scan a QR code.',
+            'warning'
+        );
+    }
+}
+
+/**
+ * Continuously inspect the camera feed for a QR code.
+ */
+async function scanQrVideo(
+    video
+) {
+
+    const detector =
+        new BarcodeDetector({
+            formats: [
+                'qr_code'
+            ]
+        });
+
+
+    while (qrScannerActive) {
+
+        try {
+
+            const barcodes =
+                await detector.detect(
+                    video
+                );
+
+
+            if (barcodes.length > 0) {
+
+                const rawValue =
+                    barcodes[0].rawValue;
+
+
+                await handleScannedJoinQr(
+                    rawValue
+                );
+
+
+                return;
+            }
+
+        } catch (error) {
+
+            console.warn(
+                'QR scan frame failed:',
+                error
+            );
+        }
+
+
+        await new Promise(
+            resolve =>
+                setTimeout(
+                    resolve,
+                    150
+                )
+        );
+    }
+}
+
+/**
+ * Handle a QR value produced by the scanner.
+ */
+async function handleScannedJoinQr(
+    rawValue
+) {
+
+    let joinCode = null;
+
+
+    try {
+
+        const url =
+            new URL(
+                rawValue
+            );
+
+
+        joinCode =
+            url.searchParams.get(
+                'join'
+            );
+
+    } catch {
+
+        /*
+         * Allow a raw six-character join code too.
+         */
+        joinCode =
+            rawValue;
+    }
+
+
+    joinCode =
+        String(joinCode || '')
+            .trim()
+            .toUpperCase();
+
+
+    if (joinCode.length !== 6) {
+
+        showToast(
+            'That QR code is not a valid Pool Platform join code.',
+            'warning'
+        );
+
+        return;
+    }
+
+
+    closeQrScanner();
+
+
+    await joinOnlineGameByCode(
+        joinCode
+    );
+
+
+    if (
+        state.config.isOnline &&
+        state.config.onlineGameId
+    ) {
+
+        platformView =
+            'ring-game';
+
+        render();
+    }
+}
+
+
+/**
+ * Stop the QR scanner and release the camera.
+ */
+function stopQrScannerCamera() {
+
+    qrScannerActive =
+        false;
+
+
+    if (qrScannerStream) {
+
+        qrScannerStream
+            .getTracks()
+            .forEach(track => {
+                track.stop();
+            });
+
+
+        qrScannerStream =
+            null;
+    }
+}
+
+
+/**
+ * Close the QR scanner.
+ */
+function closeQrScanner() {
+
+    stopQrScannerCamera();
+
+    closeModal();
+}
+
+
+/**
+ * Stop the QR scanner and release the camera.
+ */
+function stopQrScannerCamera() {
+
+    qrScannerActive =
+        false;
+
+
+    if (qrScannerStream) {
+
+        qrScannerStream
+            .getTracks()
+            .forEach(track => {
+                track.stop();
+            });
+
+
+        qrScannerStream =
+            null;
+    }
+}
+
+
+/**
+ * Close the QR scanner.
+ */
+function closeQrScanner() {
+
+    stopQrScannerCamera();
+
+    closeModal();
+}
+
+// ---------------------------------------------------------
 // QR Join State
 // ---------------------------------------------------------
 
