@@ -531,6 +531,14 @@ function openAccountModal() {
                             Sign In
                         </button>
 
+                        <button
+                            type="button"
+                            onclick="submitForgotPassword()"
+                            class="w-full mt-2 py-2 text-sm font-bold text-blue-400 hover:text-blue-300 transition"
+                        >
+                            Forgot Password?
+                        </button>
+
                     </section>
 
 
@@ -611,4 +619,252 @@ function openAccountModal() {
 
                 </div>
             `);
+}
+
+
+// ---------------------------------------------------------
+// Password Management
+// ---------------------------------------------------------
+
+/**
+ * Change the password for the currently signed-in user.
+ */
+async function updateAccountPassword(
+    newPassword,
+    confirmPassword
+) {
+
+    if (!currentUser) {
+
+        showToast(
+            'Sign in before changing your password.',
+            'warning'
+        );
+
+        return false;
+    }
+
+
+    if (
+        !newPassword ||
+        !confirmPassword
+    ) {
+
+        showToast(
+            'Enter and confirm your new password.',
+            'warning'
+        );
+
+        return false;
+    }
+
+
+    if (newPassword.length < 8) {
+
+        showToast(
+            'Password must be at least 8 characters.',
+            'warning'
+        );
+
+        return false;
+    }
+
+
+    if (newPassword !== confirmPassword) {
+
+        showToast(
+            'Passwords do not match.',
+            'warning'
+        );
+
+        return false;
+    }
+
+
+    const { error } =
+        await supabaseClient.auth.updateUser({
+            password:
+                newPassword
+        });
+
+
+    if (error) {
+
+        console.error(
+            'Could not change password:',
+            error
+        );
+
+        showToast(
+            'Could not change your password.',
+            'danger'
+        );
+
+        return false;
+    }
+
+
+    showToast(
+        'Password changed successfully.',
+        'success'
+    );
+
+
+    return true;
+}
+
+
+/**
+ * Submit the password-change form from the Profile screen.
+ */
+async function submitPasswordChange() {
+
+    const passwordInput =
+        document.getElementById(
+            'profile-new-password'
+        );
+
+
+    const confirmInput =
+        document.getElementById(
+            'profile-confirm-password'
+        );
+
+
+    if (
+        !passwordInput ||
+        !confirmInput
+    ) {
+        return;
+    }
+
+
+    const changed =
+        await updateAccountPassword(
+            passwordInput.value,
+            confirmInput.value
+        );
+
+
+    if (!changed) {
+        return;
+    }
+
+
+    passwordInput.value = '';
+    confirmInput.value = '';
+}
+
+
+/**
+ * Send a password-recovery email to the supplied address.
+ */
+async function sendPasswordResetEmail(
+    email
+) {
+
+    const cleanEmail =
+        String(email || '')
+            .trim()
+            .toLowerCase();
+
+
+    if (!cleanEmail) {
+
+        showToast(
+            'Enter your email address first.',
+            'warning'
+        );
+
+        return false;
+    }
+
+
+    /*
+     * Return recovery links to the same deployed application.
+     */
+    const redirectUrl =
+        `${window.location.origin}${window.location.pathname}`;
+
+
+    const { error } =
+        await supabaseClient.auth
+            .resetPasswordForEmail(
+                cleanEmail,
+                {
+                    redirectTo:
+                        redirectUrl
+                }
+            );
+
+
+    if (error) {
+
+        console.error(
+            'Could not send password reset email:',
+            error
+        );
+
+        showToast(
+            'Could not send the password reset email.',
+            'danger'
+        );
+
+        return false;
+    }
+
+
+    showToast(
+        'Password reset email sent. Check your inbox.',
+        'success'
+    );
+
+
+    return true;
+}
+
+
+/**
+ * Submit a password-reset request using the email
+ * entered on the sign-in form.
+ */
+async function submitForgotPassword() {
+
+    const emailInput =
+        document.getElementById(
+            'signin-email'
+        );
+
+
+    if (!emailInput) {
+
+        console.error(
+            'Sign-in email field was not found.'
+        );
+
+        return;
+    }
+
+
+    const email =
+        emailInput.value
+            .trim();
+
+
+    if (!email) {
+
+        showToast(
+            'Enter your email address first.',
+            'warning'
+        );
+
+        emailInput.focus();
+
+        return;
+    }
+
+
+    await sendPasswordResetEmail(
+        email
+    );
 }

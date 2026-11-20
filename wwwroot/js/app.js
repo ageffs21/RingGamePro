@@ -14,10 +14,20 @@ const APP_VERSION = '0.5.5';
 // Main Render Controller
 // ---------------------------------------------------------
 
+/**
+ * MAIN RENDER CONTROLLER
+ */
 function render() {
-    const root = document.getElementById('app-root');
-    const headerActions = document.getElementById('header-actions');
-    const subtitle = document.getElementById('header-subtitle');
+
+    const root =
+        document.getElementById('app-root');
+
+    const headerActions =
+        document.getElementById('header-actions');
+
+    const subtitle =
+        document.getElementById('header-subtitle');
+
 
     if (
         !root ||
@@ -32,39 +42,107 @@ function render() {
         return;
     }
 
-    // Rules button is available from every screen.
-    const rulesButton = `
-            <button
-                onclick="openRulesModal()"
-                class="px-3 py-1.5 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-700 text-slate-300 hover:text-white font-semibold text-xs transition"
-            >
-                <span class="text-emerald-400 font-black">?</span>
-                Rules
-            </button>
-            `;
 
-    const playersButton = `
-                <button
-                onclick="openManagePlayersModal()"
-                class="px-3 py-1.5 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-700 text-slate-300 hover:text-white font-semibold text-xs transition"
-                >
-                Players
-                </button>
-            `;
-
+    /*
+     * Shared account/profile button.
+     */
     const accountButton = `
-              <button
-                onclick="openAccountModal()"
-                class="px-3 py-1.5 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-700 text-slate-300 hover:text-white font-semibold text-xs transition"
-              >
-                ${currentProfile
+        <button
+            type="button"
+            onclick="openProfile()"
+            class="px-3 py-1.5 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-700 text-slate-300 hover:text-white font-semibold text-xs transition"
+        >
+            ${currentProfile
             ? escapeHTML(currentProfile.display_name)
             : 'Account'
         }
-              </button>
-            `;
+        </button>
+    `;
 
-    if (state.view === 'live' && state.game) {
+
+    /*
+     * ---------------------------------------------------------
+     * PLATFORM HOME
+     * ---------------------------------------------------------
+     */
+    if (platformView === 'home') {
+
+        subtitle.textContent =
+            `Pool Platform • v${APP_VERSION}`;
+
+        headerActions.innerHTML =
+            accountButton;
+
+        root.innerHTML =
+            renderPlatformHome();
+
+        return;
+    }
+
+
+    /*
+     * ---------------------------------------------------------
+     * PROFILE
+     * ---------------------------------------------------------
+     */
+    if (platformView === 'profile') {
+
+        subtitle.textContent =
+            'Profile & Account';
+
+        headerActions.innerHTML = `
+            <button
+                type="button"
+                onclick="openHome()"
+                class="px-3 py-1.5 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-700 text-slate-300 hover:text-white font-semibold text-xs transition"
+            >
+                Home
+            </button>
+        `;
+
+        root.innerHTML =
+            renderProfileView();
+
+        return;
+    }
+
+
+    /*
+     * ---------------------------------------------------------
+     * RING GAME
+     * ---------------------------------------------------------
+     */
+
+    const rulesButton = `
+        <button
+            type="button"
+            onclick="openRulesModal()"
+            class="px-3 py-1.5 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-700 text-slate-300 hover:text-white font-semibold text-xs transition"
+        >
+            <span class="text-emerald-400 font-black">?</span>
+            Rules
+        </button>
+    `;
+
+
+    const playersButton = `
+        <button
+            type="button"
+            onclick="openManagePlayersModal()"
+            class="px-3 py-1.5 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-700 text-slate-300 hover:text-white font-semibold text-xs transition"
+        >
+            Players
+        </button>
+    `;
+
+
+    /*
+     * Active Ring Game.
+     */
+    if (
+        state.view === 'live' &&
+        state.game
+    ) {
 
         /*
          * Once a match has started, the match itself is
@@ -100,59 +178,94 @@ function render() {
         headerActions.innerHTML =
             isOnlineViewer
                 ? `
-                ${rulesButton}
-                ${accountButton}
+                    ${rulesButton}
+                    ${accountButton}
 
-                <button
-                    onclick="requestLeaveActiveGame()"
-                    class="px-3 py-1.5 rounded-xl bg-rose-950/50 hover:bg-rose-900/60 border border-rose-500/40 text-rose-300 font-semibold text-xs transition">
-                    Leave Game
-                </button>
+                    <button
+                        type="button"
+                        onclick="requestLeaveActiveGame()"
+                        class="px-3 py-1.5 rounded-xl bg-rose-950/50 hover:bg-rose-900/60 border border-rose-500/40 text-rose-300 font-semibold text-xs transition"
+                    >
+                        Leave Game
+                    </button>
+                `
+                : `
+                    ${rulesButton}
+                    ${playersButton}
+                    ${accountButton}
 
-                ` : `
-                ${rulesButton}
-                ${playersButton}
-                ${accountButton}
+                    <button
+                        type="button"
+                        onclick="openEndGameModal()"
+                        class="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs transition shadow"
+                    >
+                        Settle Up
+                    </button>
 
-                <button
-                    onclick="openEndGameModal()"
-                    class="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs transition shadow"
-                >
-                    Settle Up
-                </button>
-
-                <button
-                    onclick="confirmResetModal()"
-                    class="px-3 py-1.5 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-700 text-slate-300 font-semibold text-xs transition"
-                >
-                    New Game
-                </button>
-              `;
+                    <button
+                        type="button"
+                        onclick="confirmResetModal()"
+                        class="px-3 py-1.5 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-700 text-slate-300 font-semibold text-xs transition"
+                    >
+                        New Game
+                    </button>
+                `;
 
 
         root.innerHTML =
             renderLiveView();
-    } else {
 
-        subtitle.textContent = `Billiards Ring Game Tracker • v${APP_VERSION}`;
+        return;
+    }
 
-        headerActions.innerHTML = `
-                ${rulesButton}
-                ${accountButton}
-            `;
 
-        root.innerHTML = renderSetupView();
+    /*
+     * Ring Game setup.
+     */
+    subtitle.textContent =
+        `Billiards Ring Game Tracker • v${APP_VERSION}`;
 
-        const startBtn = document.getElementById('start-match-btn');
 
-        if (startBtn) {
-            startBtn.onclick = null;
+    headerActions.innerHTML = `
+        <button
+            type="button"
+            onclick="openHome()"
+            class="px-3 py-1.5 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-700 text-slate-300 font-semibold text-xs transition"
+        >
+            Home
+        </button>
 
-            startBtn.addEventListener('click', (e) => {
-                e.preventDefault();
+        ${rulesButton}
+        ${accountButton}
+    `;
+
+
+    root.innerHTML =
+        renderSetupView();
+
+
+    const startBtn =
+        document.getElementById(
+            'start-match-btn'
+        );
+
+
+    if (startBtn) {
+
+        startBtn.onclick =
+            null;
+
+
+        startBtn.addEventListener(
+            'click',
+            event => {
+
+                event.preventDefault();
+
                 startMatch();
-            });
-        }
+
+            }
+        );
     }
 }
 
@@ -191,6 +304,44 @@ supabaseClient.auth.onAuthStateChange(
             event
         );
 
+        /*
+        * The user returned through a password-recovery link.
+        *
+        * Supabase has established a temporary authenticated
+        * recovery session. Open Profile so the user can enter
+        * and confirm a new password.
+        */
+        if (event === 'PASSWORD_RECOVERY') {
+
+            currentUser =
+                session?.user || null;
+
+
+            if (currentUser) {
+
+                await loadCurrentProfile();
+
+            }
+
+
+            previousPlatformView =
+                'home';
+
+            platformView =
+                'profile';
+
+
+            render();
+
+
+            showToast(
+                'Enter a new password to finish account recovery.',
+                'info'
+            );
+
+
+            return;
+        }
 
         /*
          * User signed out.

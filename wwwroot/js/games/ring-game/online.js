@@ -258,6 +258,51 @@ async function subscribeToOnlineLobby(gameId) {
                         }
                     }
 
+                    /*
+                    * Apply an authenticated player's display-name change
+                    * to the host's authoritative live Ring Game state.
+                    */
+                    if (
+                        state.view === 'live' &&
+                        state.config.onlineRole === 'host' &&
+                        payload.eventType === 'UPDATE' &&
+                        payload.new?.status === 'active' &&
+                        payload.new?.user_id
+                        ) {
+
+                            const livePlayer =
+                                state.game?.players?.find(
+                                    player =>
+                                        player.userId ===
+                                        payload.new.user_id
+                                );
+
+
+                            if (
+                                livePlayer &&
+                                livePlayer.name !==
+                                payload.new.display_name
+                            ) {
+
+                                livePlayer.name =
+                                    payload.new.display_name;
+
+
+                                /*
+                                 * Publish the updated authoritative live-game state
+                                 * so every connected participant receives the name.
+                                 */
+                                await saveAndSyncGame();
+
+                                render();
+
+
+                                showToast(
+                                    `${payload.new.display_name} updated their display name.`,
+                                    'info'
+                                );
+                            }
+                        }
 
                     /*
                      * During the waiting lobby, continue keeping the
@@ -893,7 +938,7 @@ async function createSetupOnlineLobby() {
 /**
 * Join an existing online lobby using its six-character code.
 */
-async function joinOnlineGameByCode() {
+async function joinOnlineGameByCode(joinCode) {
 
     if (!currentUser || !currentProfile) {
 
@@ -906,13 +951,8 @@ async function joinOnlineGameByCode() {
     }
 
 
-    const input =
-        document.getElementById(
-            'join-game-code'
-        );
-
-    const joinCode =
-        (input?.value || '')
+    joinCode =
+        String(joinCode || '')
             .trim()
             .toUpperCase();
 
@@ -1158,6 +1198,28 @@ async function joinOnlineGameByCode() {
     showToast(
         `Joined game ${joinCode}.`,
         'success'
+    );
+}
+
+/**
+ * Join an online Ring Game using the code entered
+ * on the Ring Game setup screen.
+ */
+async function submitRingGameJoinCode() {
+
+    const input =
+        document.getElementById(
+            'join-game-code'
+        );
+
+
+    if (!input) {
+        return;
+    }
+
+
+    await joinOnlineGameByCode(
+        input.value
     );
 }
 
