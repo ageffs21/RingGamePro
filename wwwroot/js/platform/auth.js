@@ -1,16 +1,20 @@
-﻿/*
-* ---------------------------------------------------------
-* USER AUTHENTICATION STATE
-* ---------------------------------------------------------
-*/
+﻿// =========================================================
+// PLATFORM - AUTHENTICATION & PROFILES
+// =========================================================
+
+
+// ---------------------------------------------------------
+// Authentication State
+// ---------------------------------------------------------
+
 let currentUser = null;
 let currentProfile = null;
 
-/*
-* ---------------------------------------------------------
-* USER AUTHENTICATION
-* ---------------------------------------------------------
-*/
+
+// ---------------------------------------------------------
+// Session & Profile Restoration
+// ---------------------------------------------------------
+
 /**
  * Load the current signed-in user and that user's profile.
  */
@@ -102,6 +106,10 @@ async function loadCurrentProfile() {
 }
 
 
+// ---------------------------------------------------------
+// Account Creation
+// ---------------------------------------------------------
+
 /**
  * Create a new PoolApp account.
  */
@@ -162,9 +170,14 @@ async function createAccount(
     }
 
 
-    currentUser = data.user;
+    currentUser =
+        data.user;
 
-    await ensureCurrentUserProfile(cleanName);
+    await ensureCurrentUserProfile(
+        cleanName
+    );
+
+    await loadCurrentProfile();
 
     showToast(
         `Welcome, ${cleanName}!`,
@@ -194,6 +207,10 @@ async function submitCreateAccount() {
     );
 }
 
+
+// ---------------------------------------------------------
+// Sign In & Sign Out
+// ---------------------------------------------------------
 
 /**
  * Sign into an existing PoolApp account.
@@ -265,6 +282,9 @@ async function submitSignIn() {
  * Sign out of PoolApp.
  */
 async function signOutUser() {
+
+    await disconnectSessionChannels();
+
     const { error } =
         await supabaseClient.auth.signOut();
 
@@ -291,6 +311,10 @@ async function signOutUser() {
     );
 }
 
+
+// ---------------------------------------------------------
+// Profile Management
+// ---------------------------------------------------------
 
 /**
  * Ensure the authenticated account has a profiles row.
@@ -361,6 +385,11 @@ async function ensureCurrentUserProfile(displayName = '') {
 
     currentProfile = data;
 }
+
+
+// ---------------------------------------------------------
+// Account Modal
+// ---------------------------------------------------------
 
 /**
 * ACCOUNT / SIGN-IN MODAL

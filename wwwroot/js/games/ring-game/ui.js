@@ -1,8 +1,37 @@
-﻿let activeTab = 'table'; // 'table' | 'racks' | 'ledger' | 'history'
+﻿// =========================================================
+// RING GAME - USER INTERFACE
+// =========================================================
+
+
+// ---------------------------------------------------------
+// UI State & Navigation
+// ---------------------------------------------------------
+
+let activeTab = 'table'; // 'table' | 'racks' | 'ledger' | 'history'
+
 
 /**
-* RENDER SETUP VIEW
-*/
+ * Change the active live-game tab and redraw the
+ * Ring Game interface.
+ */
+function switchTab(tab) {
+    activeTab = tab;
+    render();
+}
+
+
+// ---------------------------------------------------------
+// Setup View
+// ---------------------------------------------------------
+
+/**
+ * Render the Ring Game setup screen.
+ *
+ * Hosts and offline players can configure the roster,
+ * shooting order, format, money balls, and buy-in rules.
+ * Joined online participants receive a read-only view of
+ * the authoritative lobby configuration.
+ */
 function renderSetupView() {
     const cfg = state.config;
     const isOnlineParticipant =
@@ -262,41 +291,86 @@ function renderSetupView() {
 
                 <div class="space-y-2">
                     ${cfg.players.map((p, idx) => `
-                    <div
-                        draggable="true"
-                        ondragstart="handleDragStart(event, ${idx})"
-                        ondragover="handleDragOver(event)"
-                        ondrop="handleDrop(event, ${idx})"
+                        <div
+                            draggable="${!isOnlineParticipant}"
+                            ${!isOnlineParticipant
+                                                    ? `
+                                    ondragstart="handleDragStart(event, ${idx})"
+                                    ondragover="handleDragOver(event)"
+                                    ondrop="handleDrop(event, ${idx})"
+                                  `
+                                                    : ''
+                            }
                         class="flex items-center gap-2.5 bg-slatefelt-850 border border-slatefelt-700/70 rounded-xl p-2.5 transition hover:border-slate-500">
-                        <div class="cursor-grab text-slate-500 hover:text-slate-300 px-1" title="Drag to reorder">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg>
-                        </div>
+                        ${!isOnlineParticipant ? `
+                            <div
+                                class="cursor-grab text-slate-500 hover:text-slate-300 px-1"
+                                title="Drag to reorder"
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M4 8h16M4 16h16"
+                                    />
+                                </svg>
+                            </div>
+                        ` : ''}
                         <div class="w-7 h-7 rounded-lg ${idx === 0 ? 'bg-emerald-500 text-slate-950' : 'bg-slatefelt-700 text-slate-200'} font-mono font-extrabold text-xs flex items-center justify-center shrink-0">
                         ${idx === 0 ? '1st' : '#' + (idx + 1)}
                         </div>
                         <input
-                        type="text"
-                        value="${escapeHTML(p.name)}"
-                        oninput="updatePlayerName(${idx}, this.value)"
-                        placeholder="Player ${idx + 1}"
-                        class="flex-1 min-w-0 bg-slatefelt-950 border border-slatefelt-700 rounded-lg px-3 py-2 text-sm text-white font-medium"
+                            type="text"
+                            value="${escapeHTML(p.name)}"
+                            ${!isOnlineParticipant
+                                                    ? `oninput="updatePlayerName(${idx}, this.value)"`
+                                                    : 'readonly'
+                                                }
+                            placeholder="Player ${idx + 1}"
+                            class="flex-1 min-w-0 bg-slatefelt-950 border border-slatefelt-700 rounded-lg px-3 py-2 text-sm text-white font-medium
+                                ${isOnlineParticipant
+                                                    ? 'cursor-default text-slate-300'
+                                                    : ''
+                                }"
                         />
-                        <div class="flex items-center gap-1">
-                        <button
-                            onclick="movePlayerOrder(${idx}, -1)"
-                            ${idx === 0 ? 'disabled' : ''}
-                            class="p-2 rounded-lg bg-slatefelt-800 hover:bg-slatefelt-700 disabled:opacity-30 text-slate-300 transition"
-                            title="Move Up">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
-                        </button>
-                        <button
-                            onclick="movePlayerOrder(${idx}, 1)"
-                            ${idx === cfg.players.length - 1 ? 'disabled' : ''}
-                            class="p-2 rounded-lg bg-slatefelt-800 hover:bg-slatefelt-700 disabled:opacity-30 text-slate-300 transition"
-                            title="Move Down">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                        </button>
-                        </div>
+                        ${!isOnlineParticipant ? `
+                            <div class="flex items-center gap-1">
+
+                                <button
+                                    onclick="movePlayerOrder(${idx}, -1)"
+                                    ${idx === 0 ? 'disabled' : ''}
+                                    class="p-2 rounded-lg bg-slatefelt-800 hover:bg-slatefelt-700 disabled:opacity-30 text-slate-300 transition"
+                                    title="Move Up"
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M5 15l7-7 7 7"
+                                        />
+                                    </svg>
+                                </button>
+
+                                <button
+                                    onclick="movePlayerOrder(${idx}, 1)"
+                                    ${idx === cfg.players.length - 1 ? 'disabled' : ''}
+                                    class="p-2 rounded-lg bg-slatefelt-800 hover:bg-slatefelt-700 disabled:opacity-30 text-slate-300 transition"
+                                    title="Move Down"
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M19 9l-7 7-7-7"
+                                        />
+                                    </svg>
+                                </button>
+
+                            </div>
+                        ` : ''}
                     </div>
                     `).join('')}
                 </div>
@@ -440,9 +514,17 @@ function renderSetupView() {
 }
 
 
+// ---------------------------------------------------------
+// Live Game View
+// ---------------------------------------------------------
+
 /**
-* RENDER LIVE GAME VIEW
-*/
+ * Render the active Ring *ame interface.
+ *
+ * The host cont*ols shooter rotation, scoring, und*, and
+ * rack advancement. Joined *nline players receive the same
+ * *ynchronized game state with gamepl*y controls disabled.
+ */
 function renderLiveView() {
     const g = state.game;
     /*
@@ -563,6 +645,7 @@ function renderLiveView() {
                             </button>
 
 
+                            ${!isOnlineViewer ? `
                             <button
                                 onclick="undoLastAction()"
                                 ${g.snapshots.length === 0 ? 'disabled' : ''}
@@ -570,6 +653,7 @@ function renderLiveView() {
                                 <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z"/></svg>
                                 <span>Undo</span>
                             </button>
+                            ` : ''}
 
 
                             <button
@@ -829,14 +913,15 @@ function renderLiveView() {
                         <h3 class="text-base font-extrabold text-white">Rack & Shot History</h3>
                         <p class="text-xs text-slate-400">Chronological log of all money balls, turns, and pass-backs.</p>
                     </div>
-                    <button
-                        onclick="undoLastAction()"
-                        ${g.snapshots.length === 0 ? 'disabled' : ''}
-                        class="px-3.5 py-2 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 disabled:opacity-40 text-xs font-bold text-slate-200 border border-slatefelt-600">
-                        Undo Last
-                    </button>
+                        ${!isOnlineViewer ? `
+                        <button
+                         onclick="undoLastAction()"
+                         ${g.snapshots.length === 0 ? 'disabled' : ''}
+                         class="px-3.5 py-2 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 disabled:opacity-40 text-xs font-bold text-slate-200 border border-slatefelt-600">
+                         Undo Last
+                        </button>
+                        ` : ''}
                     </div>
-
 
                     ${g.history.length === 0 ? `
                     <div class="p-8 text-center text-sm text-slate-400 bg-slatefelt-850 rounded-xl border border-slatefelt-700/60">
@@ -931,9 +1016,10 @@ function renderLiveView() {
 }
 
 
-/**
-* RENDER RACKS & STATS TAB
-*/
+// ---------------------------------------------------------
+// Rack & Statistics View
+// ---------------------------------------------------------
+
 function renderRacksAndStatsTab() {
     const g =
         state.game;
@@ -1113,7 +1199,87 @@ function renderRacksAndStatsTab() {
 }
 
 
-function switchTab(tab) {
-    activeTab = tab;
-    render();
+// ---------------------------------------------------------
+// Game Modals
+// ---------------------------------------------------------
+
+function openNextRackModal() {
+    if (!state.game) return;
+    const g = state.game;
+    const currentRack = getCurrentRack();
+    const activeIndices = getActivePlayerIndices();
+
+
+    let defaultBreakerIdx = g.currentShooterIndex;
+    if (currentRack && currentRack.pocketedBalls.length > 0) {
+        const lastPocket = currentRack.pocketedBalls[currentRack.pocketedBalls.length - 1];
+        const foundIdx =
+            g.players.findIndex(
+                player =>
+                    player.id === lastPocket.shooterId &&
+                    !player.eliminated &&
+                    player.active !== false
+            );
+        if (foundIdx !== -1) defaultBreakerIdx = foundIdx;
+    }
+
+
+    const unpocketed = g.moneyBalls.filter(
+        mb => !currentRack.pocketedBalls.some(pb => pb.ball === mb.ball)
+    );
+
+
+    const html = `
+            <div class="p-5 sm:p-6">
+                <div class="flex items-center justify-between border-b border-slatefelt-700 pb-4">
+                <div>
+                    <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">Rack Transition</span>
+                    <h2 class="text-xl font-extrabold text-white mt-0.5">Advance to Rack #${g.rackNumber + 1}</h2>
+                </div>
+                <button onclick="closeModal()" class="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slatefelt-800">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+                </div>
+
+
+                ${unpocketed.length > 0 ? `
+                <div class="mt-4 bg-amber-950/35 border border-amber-500/40 rounded-xl p-3.5 text-xs text-amber-200">
+                    <strong>Note:</strong> The ${unpocketed.map(b => b.ball + '-ball').join(', ')} ${unpocketed.length === 1 ? 'has' : 'have'} not been marked pocketed in Rack #${g.rackNumber}. Starting Rack #${g.rackNumber + 1} will leave ${unpocketed.length === 1 ? 'it' : 'them'} uncollected for this rack.
+                </div>
+                ` : ''}
+
+
+                <div class="mt-4">
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                    Who Breaks Rack #${g.rackNumber + 1}?
+                </label>
+                <div class="space-y-2">
+                    ${activeIndices.map(idx => {
+        const p = g.players[idx];
+        const isDefault = idx === defaultBreakerIdx;
+        return `
+                        <label class="flex items-center justify-between p-3 rounded-xl border cursor-pointer transition ${isDefault ? 'bg-emerald-500/15 border-emerald-500 text-white' : 'bg-slatefelt-850 border-slatefelt-700 text-slate-300 hover:border-slate-500'}">
+                        <div class="flex items-center gap-3">
+                            <input type="radio" name="next-breaker-radio" value="${idx}" ${isDefault ? 'checked' : ''} style="accent-color:#10b981;" class="w-4 h-4" />
+                            <span class="font-bold text-sm">${escapeHTML(p.name)}</span>
+                        </div>
+                        ${isDefault ? '<span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">Default</span>' : ''}
+                        </label>
+                    `;
+    }).join('')}
+                </div>
+                </div>
+
+
+                <div class="flex gap-3 mt-6">
+                <button onclick="closeModal()" class="flex-1 py-3 px-4 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 text-slate-200 font-semibold text-sm">
+                    Cancel
+                </button>
+                <button onclick="confirmManualNextRack()" class="flex-1 py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm shadow-lg">
+                    Start Rack #${g.rackNumber + 1} &rarr;
+                </button>
+                </div>
+            </div>
+            `;
+    openModal(html);
 }

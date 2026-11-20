@@ -1,9 +1,18 @@
-﻿/**
-* EDIT / ADJUST PAST RACK MODAL & ACTIONS
-*/
+﻿// =========================================================
+// RING GAME - RACK EDITOR
+// =========================================================
+
+
+// ---------------------------------------------------------
+// Editor State
+// ---------------------------------------------------------
 
 let editingRackNumber = null;
 
+
+// ---------------------------------------------------------
+// Rack Editor Modal
+// ---------------------------------------------------------
 
 function openEditRackModal(rackNumber) {
     if (!state.game) return;
@@ -18,6 +27,29 @@ function renderEditRackModalContent() {
     const g = state.game;
     const rack = g.racks.find(r => r.rackNumber === editingRackNumber);
     if (!rack) return;
+
+    /*
+    * Only players who participated in this rack can be
+    * assigned as breaker or shooter.
+    */
+    const eligiblePlayers =
+        g.players.filter(player => {
+
+            const joinedAtRack =
+                player.joinedAtRack || 1;
+
+            const leftAtRack =
+                player.leftAtRack;
+
+            return (
+                joinedAtRack <= rack.rackNumber &&
+                (
+                    leftAtRack === null ||
+                    leftAtRack === undefined ||
+                    leftAtRack >= rack.rackNumber
+                )
+            );
+        });
 
 
     const unpocketedBalls = g.moneyBalls.filter(
@@ -43,7 +75,7 @@ function renderEditRackModalContent() {
                 <select
                     onchange="updateRackBreaker(${rack.rackNumber}, this.value)"
                     class="w-full bg-slatefelt-950 border border-slatefelt-700 rounded-lg px-3 py-2 text-sm text-white font-semibold">
-                    ${g.players.map(p => `
+                    ${eligiblePlayers.map(p => `
                     <option value="${p.id}" ${p.id === rack.breakerId ? 'selected' : ''}>${escapeHTML(p.name)}</option>
                     `).join('')}
                 </select>
@@ -77,7 +109,7 @@ function renderEditRackModalContent() {
                             <select
                             onchange="reassignPocketedBallShooter(${rack.rackNumber}, ${idx}, this.value)"
                             class="bg-slatefelt-950 border border-slatefelt-700 rounded-lg px-2.5 py-1.5 text-xs sm:text-sm text-white font-semibold">
-                            ${g.players.map(p => `
+                            ${eligiblePlayers.map(p => `
                                 <option value="${p.id}" ${p.id === pb.shooterId ? 'selected' : ''}>${escapeHTML(p.name)}</option>
                             `).join('')}
                             </select>
@@ -107,7 +139,7 @@ function renderEditRackModalContent() {
                         ${unpocketedBalls.map(mb => `<option value="${mb.ball}">${mb.ball}-Ball (${formatMoney(mb.value)}/ea)</option>`).join('')}
                     </select>
                     <select id="edit-rack-add-player" class="sm:col-span-5 bg-slatefelt-950 border border-slatefelt-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white font-semibold">
-                        ${g.players.map(p => `<option value="${p.id}">${escapeHTML(p.name)}</option>`).join('')}
+                        ${eligiblePlayers.map(p => `<option value="${p.id}">${escapeHTML(p.name)}</option>`).join('')}
                     </select>
                     <button
                         onclick="addMissedBallToRack(${rack.rackNumber})"
@@ -132,45 +164,99 @@ function renderEditRackModalContent() {
 }
 
 
-function updateRackBreaker(rackNumber, newBreakerId) {
+// ---------------------------------------------------------
+// Rack Breaker
+// ---------------------------------------------------------
+
+async function updateRackBreaker(rackNumber, newBreakerId) {
     const rack = state.game.racks.find(r => r.rackNumber === rackNumber);
+
     if (!rack) return;
+
+    const breaker =
+        state.game.players.find(
+            player =>
+                player.id === newBreakerId &&
+                (player.joinedAtRack || 1) <= rackNumber &&
+                (
+                    player.leftAtRack === null ||
+                    player.leftAtRack === undefined ||
+                    player.leftAtRack >= rackNumber
+                )
+        );
+
+
+    if (!breaker) {
+
+        showToast(
+            'That player did not participate in this rack.',
+            'warning'
+        );
+
+        return;
+    }
+
     pushSnapshot();
     rack.breakerId = newBreakerId;
-    saveState();
+    await saveAndSyncGame();
     render();
     renderEditRackModalContent();
     showToast(`Updated Rack #${rackNumber} breaker.`, 'info');
 }
 
 
-function reassignPocketedBallShooter(rackNumber, pocketIndex, newShooterId) {
+// ---------------------------------------------------------
+// Pocketed Money Balls
+// ---------------------------------------------------------
+
+async function reassignPocketedBallShooter(rackNumber, pocketIndex, newShooterId) {
     const rack = state.game.racks.find(r => r.rackNumber === rackNumber);
     if (!rack || !rack.pocketedBalls[pocketIndex]) return;
+
+    const shooter =
+        state.game.players.find(
+            player =>
+                player.id === newShooterId &&
+                (player.joinedAtRack || 1) <= rackNumber &&
+                (
+                    player.leftAtRack === null ||
+                    player.leftAtRack === undefined ||
+                    player.leftAtRack >= rackNumber
+                )
+        );
+
+    if (!shooter) {
+
+        showToast(
+            'That player did not participate in this rack.',
+            'warning'
+        );
+
+        return;
+    }
+
     pushSnapshot();
     const entry = rack.pocketedBalls[pocketIndex];
     entry.shooterId = newShooterId;
     recalculateAllBalancesFromRacks();
 
 
-    const shooter = getPlayerById(newShooterId);
     state.game.history.unshift({
         id: Date.now(),
         type: 'rack_edit',
         rack: rackNumber,
-        description: `Reassigned ${entry.ball}-Ball in Rack #${rackNumber} to ${shooter ? shooter.name : 'player'}`,
+        description: `Reassigned ${entry.ball}-Ball in Rack #${rackNumber} to ${shooter.name}`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     });
 
-
-    saveState();
+    await saveAndSyncGame();
     render();
     renderEditRackModalContent();
     showToast(`Reassigned ${entry.ball}-Ball & recalculated balances.`, 'success');
 }
 
 
-function deletePocketedBallFromRack(rackNumber, pocketIndex) {
+async function deletePocketedBallFromRack(rackNumber, pocketIndex) {
     const rack = state.game.racks.find(r => r.rackNumber === rackNumber);
     if (!rack || !rack.pocketedBalls[pocketIndex]) return;
     pushSnapshot();
@@ -187,14 +273,18 @@ function deletePocketedBallFromRack(rackNumber, pocketIndex) {
     });
 
 
-    saveState();
+    await saveAndSyncGame();
     render();
     renderEditRackModalContent();
     showToast(`Removed ${removed.ball}-Ball from Rack #${rackNumber}.`, 'info');
 }
 
 
-function addMissedBallToRack(rackNumber) {
+// ---------------------------------------------------------
+// Missing Money Balls
+// ---------------------------------------------------------
+
+async function addMissedBallToRack(rackNumber) {
     const rack = state.game.racks.find(r => r.rackNumber === rackNumber);
     if (!rack) return;
     const ballSelect = document.getElementById('edit-rack-add-ball');
@@ -205,7 +295,32 @@ function addMissedBallToRack(rackNumber) {
     const ballNum = parseInt(ballSelect.value, 10);
     const shooterId = playerSelect.value;
     const mbConfig = state.game.moneyBalls.find(m => m.ball === ballNum);
-    if (!mbConfig) return;
+    if (!mbConfig) {
+        return;
+    }
+
+    const shooter =
+        state.game.players.find(
+            player =>
+                player.id === shooterId &&
+                (player.joinedAtRack || 1) <= rackNumber &&
+                (
+                    player.leftAtRack === null ||
+                    player.leftAtRack === undefined ||
+                    player.leftAtRack >= rackNumber
+                )
+        );
+
+
+    if (!shooter) {
+
+        showToast(
+            'That player did not participate in this rack.',
+            'warning'
+        );
+
+        return;
+    }
 
 
     pushSnapshot();
@@ -222,18 +337,16 @@ function addMissedBallToRack(rackNumber) {
 
     recalculateAllBalancesFromRacks();
 
-
-    const shooter = getPlayerById(shooterId);
     state.game.history.unshift({
         id: Date.now(),
         type: 'rack_edit',
         rack: rackNumber,
-        description: `Added missed ${ballNum}-Ball in Rack #${rackNumber} for ${shooter ? shooter.name : 'player'}`,
+        description: `Added missed ${ballNum}-Ball in Rack #${rackNumber} for ${shooter.name}`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     });
 
 
-    saveState();
+    await saveAndSyncGame();
     render();
     renderEditRackModalContent();
     showToast(`Added ${ballNum}-Ball to Rack #${rackNumber} & updated balances.`, 'success');

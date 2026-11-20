@@ -1,4 +1,13 @@
-﻿/**
+﻿// =========================================================
+// RING GAME - ONLINE PLAY
+// =========================================================
+
+
+// ---------------------------------------------------------
+// Lobby Roster
+// ---------------------------------------------------------
+
+/**
 * Load the current online lobby roster from Supabase.
 */
 async function loadOnlineLobbyRoster(gameId) {
@@ -74,6 +83,53 @@ async function loadOnlineLobbyRoster(gameId) {
     return true;
 }
 
+
+async function refreshLobbyPlayers() {
+
+    const gameId =
+        state.config.onlineGameId;
+
+    if (!gameId) {
+
+        showToast(
+            'No online lobby is active.',
+            'warning'
+        );
+
+        return;
+    }
+
+
+    const success =
+        await loadOnlineLobbyRoster(
+            gameId
+        );
+
+
+    if (!success) {
+
+        showToast(
+            'Could not refresh lobby.',
+            'danger'
+        );
+
+        return;
+    }
+
+
+    render();
+
+
+    showToast(
+        `${state.config.players.length} players in lobby.`,
+        'success'
+    );
+}
+
+
+// ---------------------------------------------------------
+// Realtime Subscriptions
+// ---------------------------------------------------------
 
 /**
  * Subscribe to player changes for the current online lobby.
@@ -482,16 +538,645 @@ async function subscribeToOnlineGame(gameId) {
 }
 
 
-function openActiveGameJoinRequestModal(pendingPlayer) {
-    const safePlayerId =
-        escapeJavaScriptString(pendingPlayer.id);
+// ---------------------------------------------------------
+// Online Session Attachment
+// ---------------------------------------------------------
 
+/**
+ * Attach this device's Ring Game setup state to an
+ * existing online cloud game.
+ */
+function attachRingGameToOnlineSession(gameData) {
+
+    if (!gameData) {
+        return;
+    }
+
+    state.config.onlineGameId =
+        gameData.id;
+
+    state.config.joinCode =
+        gameData.join_code;
+
+    state.config.isOnline =
+        true;
+
+    state.config.onlineRole =
+        gameData.host_id === currentUser?.id
+            ? 'host'
+            : 'player';
+}
+
+/**
+ * Finish attaching this device to an online Ring Game.
+ *
+ * Reloads the authoritative lobby roster, establishes
+ * realtime subscriptions, saves local state, and redraws
+ * the current view.
+ */
+async function connectToOnlineRingGame(gameData) {
+
+    if (!gameData?.id) {
+        return false;
+    }
+
+
+    /*
+     * Store this device's online session identity.
+     */
+    attachRingGameToOnlineSession(
+        gameData
+    );
+
+
+    /*
+     * Replace the cached lobby roster with the
+     * authoritative Supabase roster.
+     */
+    const rosterLoaded =
+        await loadOnlineLobbyRoster(
+            gameData.id
+        );
+
+
+    if (!rosterLoaded) {
+        return false;
+    }
+
+
+    /*
+     * Establish realtime subscriptions for both
+     * participation and game-state changes.
+     */
+    await subscribeToOnlineLobby(
+        gameData.id
+    );
+
+    await subscribeToOnlineGame(
+        gameData.id
+    );
+
+
+    saveState();
+
+    render();
+
+    return true;
+}
+
+
+// ---------------------------------------------------------
+// Waiting Lobby Creation
+// ---------------------------------------------------------
+
+/**
+ * Create an online game lobby from the Match Setup screen.
+ *
+ * The Ring Game itself has not started yet. Players can join
+ * this lobby and the host can set/randomize shooting order
+ * before pressing Start Match.
+ */
+async function createCloudGame() {
+
+    if (!currentUser || !currentProfile) {
+
+        showToast(
+            'Sign in to create an online game.',
+            'warning'
+        );
+
+        return false;
+    }
+
+
+    /*
+     * Lobby already exists.
+     */
+    if (
+        state.config.isOnline &&
+        state.config.onlineGameId
+    ) {
+        return true;
+    }
+
+
+    for (let attempt = 0; attempt < 5; attempt++) {
+
+        const joinCode =
+            generateJoinCode();
+
+
+        const {
+            data: gameData,
+            error: gameError
+        } =
+            await supabaseClient
+                .from('games')
+                .insert({
+
+                    host_id:
+                        currentUser.id,
+
+                    join_code:
+                        joinCode,
+
+                    game_type:
+                        'ring',
+
+                    /*
+                     * The match has not started yet.
+                     */
+                    status:
+                        'waiting'
+
+                })
+                .select()
+                .single();
+
+
+        if (gameError) {
+
+            /*
+             * Duplicate join code.
+             */
+            if (gameError.code === '23505') {
+                continue;
+            }
+
+            console.error(
+                'Could not create online game lobby:',
+                gameError
+            );
+
+            showToast(
+                'Could not create online game.',
+                'danger'
+            );
+
+            return false;
+        }
+
+
+        /*
+         * Add the signed-in host as the first lobby player.
+         */
+        const {
+            error: playerError
+        } =
+            await supabaseClient
+                .from('game_players')
+                .insert({
+
+                    game_id:
+                        gameData.id,
+
+                    user_id:
+                        currentUser.id,
+
+                    display_name:
+                        currentProfile.display_name,
+
+                    shooting_order:
+                        1,
+
+                    status:
+                        'active'
+
+                });
+
+
+        if (playerError) {
+
+            console.error(
+                'Could not add host to online lobby:',
+                playerError
+            );
+
+
+            /*
+             * The waiting lobby cannot be used without its
+             * host participation row.
+             */
+            await supabaseClient
+                .from('games')
+                .update({
+                    status:
+                        'cancelled',
+
+                    completed_at:
+                        new Date().toISOString()
+                })
+                .eq(
+                    'id',
+                    gameData.id
+                );
+
+
+            showToast(
+                'Lobby created, but host could not be added.',
+                'danger'
+            );
+
+            return false;
+        }
+
+
+        /*
+         * Save the lobby identity in setup configuration.
+         */
+        state.config.onlineGameId = gameData.id;
+        state.config.joinCode = joinCode;
+        state.config.isOnline = true;
+        state.config.onlineRole = 'host';
+
+        /*
+         * Load the actual game_players rows back from Supabase.
+         * This ensures the host also uses the authoritative database
+         * participation ID instead of a temporary lobby ID.
+         */
+        await loadOnlineLobbyRoster(
+            gameData.id
+        );
+
+
+        /*
+         * Watch for registered users and guests joining or leaving.
+         */
+        await subscribeToOnlineLobby(
+            gameData.id
+        );
+
+        await subscribeToOnlineGame(
+            gameData.id
+        );
+
+
+        saveState();
+        render();
+
+
+        showToast(
+            `Online lobby ready: ${joinCode}`,
+            'success'
+        );
+
+        return true;
+    }
+
+
+    showToast(
+        'Could not generate a unique game code.',
+        'danger'
+    );
+
+    return false;
+}
+
+
+/**
+* Create an online lobby from the Match Setup screen.
+*/
+async function createSetupOnlineLobby() {
+
+    if (!currentUser || !currentProfile) {
+        showToast(
+            'Sign in before creating an online lobby.',
+            'warning'
+        );
+
+        return;
+    }
+
+    /*
+     * Prevent accidentally creating a second lobby.
+     */
+    if (
+        state.config.isOnline &&
+        state.config.onlineGameId
+    ) {
+        showToast(
+            `Online lobby already active: ${state.config.joinCode}`,
+            'info'
+        );
+
+        return;
+    }
+
+
+    showToast(
+        'Creating online lobby...',
+        'info'
+    );
+
+
+    const success =
+        await createCloudGame();
+
+
+    if (!success) {
+        return;
+    }
+
+
+    /*
+     * Redraw Setup so the button changes into
+     * the Join Code display.
+     */
+    render();
+}
+
+
+// ---------------------------------------------------------
+// Join Online Game
+// ---------------------------------------------------------
+
+/**
+* Join an existing online lobby using its six-character code.
+*/
+async function joinOnlineGameByCode() {
+
+    if (!currentUser || !currentProfile) {
+
+        showToast(
+            'Sign in before joining an online game.',
+            'warning'
+        );
+
+        return;
+    }
+
+
+    const input =
+        document.getElementById(
+            'join-game-code'
+        );
+
+    const joinCode =
+        (input?.value || '')
+            .trim()
+            .toUpperCase();
+
+
+    if (joinCode.length !== 6) {
+
+        showToast(
+            'Enter the 6-character join code.',
+            'warning'
+        );
+
+        return;
+    }
+
+
+    showToast(
+        'Finding game...',
+        'info'
+    );
+
+
+    /*
+     * Find a waiting game with this code.
+     */
+    const {
+        data: gameData,
+        error: gameError
+    } =
+        await supabaseClient
+            .from('games')
+            .select('*')
+            .eq(
+                'join_code',
+                joinCode
+            )
+            .in(
+                'status',
+                [
+                    'waiting',
+                    'active'
+                ]
+            )
+            .maybeSingle();
+
+
+    if (gameError) {
+
+        console.error(
+            'Could not find online game:',
+            gameError
+        );
+
+        showToast(
+            'Could not look up that game.',
+            'danger'
+        );
+
+        return;
+    }
+
+
+    if (!gameData) {
+
+        showToast(
+            'No available game was found with that code.',
+            'warning'
+        );
+
+        return;
+    }
+
+    /*
+     * A waiting lobby can be joined immediately.
+     * An active match requires host approval.
+     */
+    const isActiveGame =
+        gameData.status === 'active';
+
+
+    /*
+     * Load the existing lobby roster.
+     */
+    const {
+        data: existingPlayers,
+        error: playersError
+    } =
+        await supabaseClient
+            .from('game_players')
+            .select('*')
+            .eq(
+                'game_id',
+                gameData.id
+            )
+            .eq(
+                'status',
+                'active'
+            )
+            .order(
+                'shooting_order',
+                {
+                    ascending: true
+                }
+            );
+
+
+    if (playersError) {
+
+        console.error(
+            'Could not load lobby players:',
+            playersError
+        );
+
+        showToast(
+            'Could not load the game lobby.',
+            'danger'
+        );
+
+        return;
+    }
+
+    /*
+     * Don't join twice.
+     */
+    const alreadyJoined =
+        existingPlayers.some(
+            player =>
+                player.user_id ===
+                currentUser.id
+        );
+
+    /*
+    * A full lobby can still be rejoined by a player
+    * who is already participating.
+    */
+    if (existingPlayers.length >= 12 && !alreadyJoined) {
+
+        showToast(
+            'That game already has 12 players.',
+            'warning'
+        );
+
+        return;
+    }
+
+
+    if (alreadyJoined) {
+
+        const connected =
+            await connectToOnlineRingGame(
+                gameData
+            );
+
+
+        if (!connected) {
+
+            showToast(
+                'Could not reconnect to the game.',
+                'danger'
+            );
+
+            return;
+        }
+
+
+        showToast(
+            'You have already joined this game.',
+            'info'
+        );
+
+        return;
+    }
+
+
+    /*
+     * New player goes at the end of the current order.
+     */
+    const shootingOrder =
+        existingPlayers.length + 1;
+
+
+    const {
+        error: insertError
+    } =
+        await supabaseClient
+            .from('game_players')
+            .insert({
+
+                game_id:
+                    gameData.id,
+
+                user_id:
+                    currentUser.id,
+
+                display_name:
+                    currentProfile.display_name,
+
+                shooting_order:
+                    isActiveGame
+                        ? null
+                        : shootingOrder,
+
+                status:
+                    isActiveGame
+                        ? 'pending'
+                        : 'active'
+
+            });
+
+
+    if (insertError) {
+
+        console.error(
+            'Could not join online game:',
+            insertError
+        );
+
+        showToast(
+            'Could not join the game.',
+            'danger'
+        );
+
+        return;
+    }
+
+
+    const connected =
+        await connectToOnlineRingGame(
+            gameData
+        );
+
+
+    if (!connected) {
+
+        showToast(
+            'You joined the game, but could not connect to the lobby.',
+            'warning'
+        );
+
+        return;
+    }
+
+
+    showToast(
+        `Joined game ${joinCode}.`,
+        'success'
+    );
+}
+
+
+// ---------------------------------------------------------
+// Active Game Join Requests
+// ---------------------------------------------------------
+
+function openActiveGameJoinRequestModal(pendingPlayer) {
+    
     if (
         !pendingPlayer ||
         !pendingPlayer.id
     ) {
         return;
     }
+
+    const safePlayerId =
+            escapeJavaScriptString(pendingPlayer.id);
 
 
     openModal(`
@@ -921,6 +1606,10 @@ async function declineActiveGameJoinRequest(
 }
 
 
+// ---------------------------------------------------------
+// Convert Local Game to Online
+// ---------------------------------------------------------
+
 /**
  * Convert the currently running local Ring Game into an
  * active online game.
@@ -1236,321 +1925,9 @@ async function makeCurrentGameOnline() {
 }
 
 
-/**
-* Join an existing online lobby using its six-character code.
-*/
-async function joinOnlineGameByCode() {
-
-    if (!currentUser || !currentProfile) {
-
-        showToast(
-            'Sign in before joining an online game.',
-            'warning'
-        );
-
-        return;
-    }
-
-
-    const input =
-        document.getElementById(
-            'join-game-code'
-        );
-
-    const joinCode =
-        (input?.value || '')
-            .trim()
-            .toUpperCase();
-
-
-    if (joinCode.length !== 6) {
-
-        showToast(
-            'Enter the 6-character join code.',
-            'warning'
-        );
-
-        return;
-    }
-
-
-    showToast(
-        'Finding game...',
-        'info'
-    );
-
-
-    /*
-     * Find a waiting game with this code.
-     */
-    const {
-        data: gameData,
-        error: gameError
-    } =
-        await supabaseClient
-            .from('games')
-            .select('*')
-            .eq(
-                'join_code',
-                joinCode
-            )
-            .in(
-                'status',
-                [
-                    'waiting',
-                    'active'
-                ]
-            )
-            .maybeSingle();
-
-
-    if (gameError) {
-
-        console.error(
-            'Could not find online game:',
-            gameError
-        );
-
-        showToast(
-            'Could not look up that game.',
-            'danger'
-        );
-
-        return;
-    }
-
-
-    if (!gameData) {
-
-        showToast(
-            'No available game was found with that code.',
-            'warning'
-        );
-
-        return;
-    }
-
-    /*
-     * A waiting lobby can be joined immediately.
-     * An active match requires host approval.
-     */
-    const isActiveGame =
-        gameData.status === 'active';
-
-
-    /*
-     * Load the existing lobby roster.
-     */
-    const {
-        data: existingPlayers,
-        error: playersError
-    } =
-        await supabaseClient
-            .from('game_players')
-            .select('*')
-            .eq(
-                'game_id',
-                gameData.id
-            )
-            .eq(
-                'status',
-                'active'
-            )
-            .order(
-                'shooting_order',
-                {
-                    ascending: true
-                }
-            );
-
-
-    if (playersError) {
-
-        console.error(
-            'Could not load lobby players:',
-            playersError
-        );
-
-        showToast(
-            'Could not load the game lobby.',
-            'danger'
-        );
-
-        return;
-    }
-
-
-    /*
-     * Don't allow more than 12 players.
-     */
-    if (existingPlayers.length >= 12) {
-
-        showToast(
-            'That game already has 12 players.',
-            'warning'
-        );
-
-        return;
-    }
-
-
-    /*
-     * Don't join twice.
-     */
-    const alreadyJoined =
-        existingPlayers.some(
-            player =>
-                player.user_id ===
-                currentUser.id
-        );
-
-
-    if (alreadyJoined) {
-
-        const connected =
-            await connectToOnlineRingGame(
-                gameData
-            );
-
-
-        if (!connected) {
-
-            showToast(
-                'Could not reconnect to the game.',
-                'danger'
-            );
-
-            return;
-        }
-
-
-        showToast(
-            'You have already joined this game.',
-            'info'
-        );
-
-        return;
-    }
-
-
-    /*
-     * New player goes at the end of the current order.
-     */
-    const shootingOrder =
-        existingPlayers.length + 1;
-
-
-    const {
-        error: insertError
-    } =
-        await supabaseClient
-            .from('game_players')
-            .insert({
-
-                game_id:
-                    gameData.id,
-
-                user_id:
-                    currentUser.id,
-
-                display_name:
-                    currentProfile.display_name,
-
-                shooting_order:
-                    isActiveGame
-                        ? null
-                        : shootingOrder,
-
-                status:
-                    isActiveGame
-                        ? 'pending'
-                        : 'active'
-
-            });
-
-
-    if (insertError) {
-
-        console.error(
-            'Could not join online game:',
-            insertError
-        );
-
-        showToast(
-            'Could not join the game.',
-            'danger'
-        );
-
-        return;
-    }
-
-
-    const connected =
-        await connectToOnlineRingGame(
-            gameData
-        );
-
-
-    if (!connected) {
-
-        showToast(
-            'You joined the game, but could not connect to the lobby.',
-            'warning'
-        );
-
-        return;
-    }
-
-
-    showToast(
-        `Joined game ${joinCode}.`,
-        'success'
-    );
-}
-
-
-async function refreshLobbyPlayers() {
-
-    const gameId =
-        state.config.onlineGameId;
-
-    if (!gameId) {
-
-        showToast(
-            'No online lobby is active.',
-            'warning'
-        );
-
-        return;
-    }
-
-
-    const success =
-        await loadOnlineLobbyRoster(
-            gameId
-        );
-
-
-    if (!success) {
-
-        showToast(
-            'Could not refresh lobby.',
-            'danger'
-        );
-
-        return;
-    }
-
-
-    render();
-
-
-    showToast(
-        `${state.config.players.length} players in lobby.`,
-        'success'
-    );
-}
-
+// ---------------------------------------------------------
+// Lobby Restoration
+// ---------------------------------------------------------
 
 /**
 * Restore the current online lobby after the app loads
@@ -1619,13 +1996,9 @@ async function restoreOnlineLobby() {
     }
 
 
-    state.config.joinCode =
-        gameData.join_code;
-
-    state.config.onlineRole =
-        gameData.host_id === currentUser.id
-            ? 'host'
-            : 'player';
+    attachRingGameToOnlineSession(
+        gameData
+    );
 
 
     /*
@@ -1653,6 +2026,10 @@ async function restoreOnlineLobby() {
     render();
 }
 
+
+// ---------------------------------------------------------
+// Leave & Abandon Waiting Lobby
+// ---------------------------------------------------------
 
 function confirmAbandonOnlineLobby() {
 
@@ -1887,6 +2264,180 @@ async function leaveOnlineLobby() {
 }
 
 
+// ---------------------------------------------------------
+// Online Game Synchronization
+// ---------------------------------------------------------
+
+/**
+* Publish the host's current Ring Game state to Supabase.
+*/
+async function publishOnlineGameState() {
+
+    if (
+        !state.game ||
+        !state.game.isOnline ||
+        !state.game.cloudGameId ||
+        state.config.onlineRole !== 'host'
+    ) {
+        return false;
+    }
+
+
+    const { error } =
+        await supabaseClient
+            .from('games')
+            .update({
+                game_state: state.game
+            })
+            .eq(
+                'id',
+                state.game.cloudGameId
+            );
+
+
+    if (error) {
+
+        console.error(
+            'Could not publish online game state:',
+            error
+        );
+
+        showToast(
+            'Could not sync the online game.',
+            'warning'
+        );
+
+        return false;
+    }
+
+
+    return true;
+}
+
+
+/**
+* Save the local game and synchronize it to Supabase
+* when this device is hosting an online match.
+*/
+async function saveAndSyncGame() {
+
+    saveState();
+
+    if (
+        state.game &&
+        state.game.isOnline &&
+        state.config.onlineRole === 'host'
+    ) {
+        await publishOnlineGameState();
+    }
+}
+
+
+/**
+ * Publish a newly started Ring Game to the cloud.
+ *
+ * Returns true when the game is local or the cloud
+ * update succeeds. Returns false when cloud sync fails.
+ */
+async function publishStartedRingGame() {
+
+    if (
+        !state.game ||
+        !state.game.isOnline ||
+        !state.game.cloudGameId ||
+        state.config.onlineRole !== 'host'
+    ) {
+        return true;
+    }
+
+
+    const {
+        error
+    } =
+        await supabaseClient
+            .from('games')
+            .update({
+                status: 'active',
+                game_state: state.game
+            })
+            .eq(
+                'id',
+                state.game.cloudGameId
+            );
+
+
+    if (error) {
+
+        console.error(
+            'Could not start cloud game:',
+            error
+        );
+
+        showToast(
+            'Match started locally, but cloud sync failed.',
+            'warning'
+        );
+
+        return false;
+    }
+
+
+    return true;
+}
+
+
+// ---------------------------------------------------------
+// Online Game Completion
+// ---------------------------------------------------------
+
+/**
+ * Mark an online Ring Game as completed and publish
+ * its final authoritative game state.
+ */
+async function completeOnlineRingGame(
+    cloudGameId,
+    finalGameState
+) {
+
+    if (!cloudGameId) {
+        return true;
+    }
+
+
+    const { error } =
+        await supabaseClient
+            .from('games')
+            .update({
+                status: 'completed',
+                completed_at: new Date().toISOString(),
+                game_state: finalGameState
+            })
+            .eq(
+                'id',
+                cloudGameId
+            );
+
+
+    if (error) {
+
+        console.error(
+            'Could not complete online Ring Game:',
+            error
+        );
+
+        showToast(
+            'Match ended locally, but the online game could not be marked complete.',
+            'warning'
+        );
+
+        return false;
+    }
+
+
+    return true;
+}
+
+
 /**
  * Handle completion of an online Ring Game on a participant device.
  *
@@ -2022,489 +2573,4 @@ async function handleCompletedOnlineGame(updatedGame) {
 
         </div>
     `);
-}
-
-
-/**
-* Publish the host's current Ring Game state to Supabase.
-*/
-async function publishOnlineGameState() {
-
-    if (
-        !state.game ||
-        !state.game.isOnline ||
-        !state.game.cloudGameId ||
-        state.config.onlineRole !== 'host'
-    ) {
-        return false;
-    }
-
-
-    const { error } =
-        await supabaseClient
-            .from('games')
-            .update({
-                game_state: state.game
-            })
-            .eq(
-                'id',
-                state.game.cloudGameId
-            );
-
-
-    if (error) {
-
-        console.error(
-            'Could not publish online game state:',
-            error
-        );
-
-        showToast(
-            'Could not sync the online game.',
-            'warning'
-        );
-
-        return false;
-    }
-
-
-    return true;
-}
-
-
-/**
- * Create an online game lobby from the Match Setup screen.
- *
- * The Ring Game itself has not started yet. Players can join
- * this lobby and the host can set/randomize shooting order
- * before pressing Start Match.
- */
-async function createCloudGame() {
-
-    if (!currentUser || !currentProfile) {
-
-        showToast(
-            'Sign in to create an online game.',
-            'warning'
-        );
-
-        return false;
-    }
-
-
-    /*
-     * Lobby already exists.
-     */
-    if (
-        state.config.isOnline &&
-        state.config.onlineGameId
-    ) {
-        return true;
-    }
-
-
-    for (let attempt = 0; attempt < 5; attempt++) {
-
-        const joinCode =
-            generateJoinCode();
-
-
-        const {
-            data: gameData,
-            error: gameError
-        } =
-            await supabaseClient
-                .from('games')
-                .insert({
-
-                    host_id:
-                        currentUser.id,
-
-                    join_code:
-                        joinCode,
-
-                    game_type:
-                        'ring',
-
-                    /*
-                     * The match has not started yet.
-                     */
-                    status:
-                        'waiting'
-
-                })
-                .select()
-                .single();
-
-
-        if (gameError) {
-
-            /*
-             * Duplicate join code.
-             */
-            if (gameError.code === '23505') {
-                continue;
-            }
-
-            console.error(
-                'Could not create online game lobby:',
-                gameError
-            );
-
-            showToast(
-                'Could not create online game.',
-                'danger'
-            );
-
-            return false;
-        }
-
-
-        /*
-         * Add the signed-in host as the first lobby player.
-         */
-        const {
-            error: playerError
-        } =
-            await supabaseClient
-                .from('game_players')
-                .insert({
-
-                    game_id:
-                        gameData.id,
-
-                    user_id:
-                        currentUser.id,
-
-                    display_name:
-                        currentProfile.display_name,
-
-                    shooting_order:
-                        1,
-
-                    status:
-                        'active'
-
-                });
-
-
-        if (playerError) {
-
-            console.error(
-                'Could not add host to online lobby:',
-                playerError
-            );
-
-            showToast(
-                'Lobby created, but host could not be added.',
-                'danger'
-            );
-
-            return false;
-        }
-
-
-        /*
-         * Save the lobby identity in setup configuration.
-         */
-        state.config.onlineGameId = gameData.id;
-        state.config.joinCode = joinCode;
-        state.config.isOnline = true;
-        state.config.onlineRole = 'host';
-
-        /*
-         * Load the actual game_players rows back from Supabase.
-         * This ensures the host also uses the authoritative database
-         * participation ID instead of a temporary lobby ID.
-         */
-        await loadOnlineLobbyRoster(
-            gameData.id
-        );
-
-
-        /*
-         * Watch for registered users and guests joining or leaving.
-         */
-        await subscribeToOnlineLobby(
-            gameData.id
-        );
-
-        await subscribeToOnlineGame(
-            gameData.id
-        );
-
-
-        saveState();
-        render();
-
-
-        showToast(
-            `Online lobby ready: ${joinCode}`,
-            'success'
-        );
-
-        return true;
-    }
-
-
-    showToast(
-        'Could not generate a unique game code.',
-        'danger'
-    );
-
-    return false;
-}
-
-
-/**
- * Mark an online Ring Game as completed and publish
- * its final authoritative game state.
- */
-async function completeOnlineRingGame(
-    cloudGameId,
-    finalGameState
-) {
-
-    if (!cloudGameId) {
-        return true;
-    }
-
-
-    const { error } =
-        await supabaseClient
-            .from('games')
-            .update({
-                status: 'completed',
-                completed_at: new Date().toISOString(),
-                game_state: finalGameState
-            })
-            .eq(
-                'id',
-                cloudGameId
-            );
-
-
-    if (error) {
-
-        console.error(
-            'Could not complete online Ring Game:',
-            error
-        );
-
-        showToast(
-            'Match ended locally, but the online game could not be marked complete.',
-            'warning'
-        );
-
-        return false;
-    }
-
-
-    return true;
-}
-
-/**
-* Create an online lobby from the Match Setup screen.
-*/
-async function createSetupOnlineLobby() {
-
-    if (!currentUser || !currentProfile) {
-        showToast(
-            'Sign in before creating an online lobby.',
-            'warning'
-        );
-
-        return;
-    }
-
-    /*
-     * Prevent accidentally creating a second lobby.
-     */
-    if (
-        state.config.isOnline &&
-        state.config.onlineGameId
-    ) {
-        showToast(
-            `Online lobby already active: ${state.config.joinCode}`,
-            'info'
-        );
-
-        return;
-    }
-
-
-    showToast(
-        'Creating online lobby...',
-        'info'
-    );
-
-
-    const success =
-        await createCloudGame();
-
-
-    if (!success) {
-        return;
-    }
-
-
-    /*
-     * Redraw Setup so the button changes into
-     * the Join Code display.
-     */
-    render();
-}
-
-
-/**
-* Save the local game and synchronize it to Supabase
-* when this device is hosting an online match.
-*/
-async function saveAndSyncGame() {
-
-    saveState();
-
-    if (
-        state.game &&
-        state.game.isOnline &&
-        state.config.onlineRole === 'host'
-    ) {
-        await publishOnlineGameState();
-    }
-}
-
-
-/**
- * Publish a newly started Ring Game to the cloud.
- *
- * Returns true when the game is local or the cloud
- * update succeeds. Returns false when cloud sync fails.
- */
-async function publishStartedRingGame() {
-
-    if (
-        !state.game ||
-        !state.game.isOnline ||
-        !state.game.cloudGameId ||
-        state.config.onlineRole !== 'host'
-    ) {
-        return true;
-    }
-
-
-    const {
-        error
-    } =
-        await supabaseClient
-            .from('games')
-            .update({
-                status: 'active',
-                game_state: state.game
-            })
-            .eq(
-                'id',
-                state.game.cloudGameId
-            );
-
-
-    if (error) {
-
-        console.error(
-            'Could not start cloud game:',
-            error
-        );
-
-        showToast(
-            'Match started locally, but cloud sync failed.',
-            'warning'
-        );
-
-        return false;
-    }
-
-
-    return true;
-}
-
-
-/**
- * Attach this device's Ring Game setup state to an
- * existing online cloud game.
- */
-function attachRingGameToOnlineSession(gameData) {
-
-    if (!gameData) {
-        return;
-    }
-
-    state.config.onlineGameId =
-        gameData.id;
-
-    state.config.joinCode =
-        gameData.join_code;
-
-    state.config.isOnline =
-        true;
-
-    state.config.onlineRole =
-        gameData.host_id === currentUser?.id
-            ? 'host'
-            : 'player';
-}
-
-/**
- * Finish attaching this device to an online Ring Game.
- *
- * Reloads the authoritative lobby roster, establishes
- * realtime subscriptions, saves local state, and redraws
- * the current view.
- */
-async function connectToOnlineRingGame(gameData) {
-
-    if (!gameData?.id) {
-        return false;
-    }
-
-
-    /*
-     * Store this device's online session identity.
-     */
-    attachRingGameToOnlineSession(
-        gameData
-    );
-
-
-    /*
-     * Replace the cached lobby roster with the
-     * authoritative Supabase roster.
-     */
-    const rosterLoaded =
-        await loadOnlineLobbyRoster(
-            gameData.id
-        );
-
-
-    if (!rosterLoaded) {
-        return false;
-    }
-
-
-    /*
-     * Establish realtime subscriptions for both
-     * participation and game-state changes.
-     */
-    await subscribeToOnlineLobby(
-        gameData.id
-    );
-
-    await subscribeToOnlineGame(
-        gameData.id
-    );
-
-
-    saveState();
-
-    render();
-
-    return true;
 }

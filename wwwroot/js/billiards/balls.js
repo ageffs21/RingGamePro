@@ -1,6 +1,12 @@
-﻿/**
-* Pool Ball Color Metadata (Standard WPA / Aramith Colors)
-*/
+﻿// =========================================================
+// BILLIARDS - POOL BALLS
+// =========================================================
+
+
+// ---------------------------------------------------------
+// Ball Appearance Metadata
+// ---------------------------------------------------------
+
 const BALL_STYLES = {
     1: { color: '#eab308', stripe: false, name: 'Yellow' },
     2: { color: '#2563eb', stripe: false, name: 'Blue' },
@@ -20,16 +26,68 @@ const BALL_STYLES = {
 };
 
 
+// ---------------------------------------------------------
+// Ball Rendering
+// ---------------------------------------------------------
+
 /**
-* Helper: Render HTML for an authentic pool ball
-*/
-function renderPoolBallHTML(num, sizeClass = 'w-10 h-10', numSizeClass = 'w-5 h-5 text-xs') {
-    const meta = BALL_STYLES[num] || { color: '#64748b', stripe: false };
-    const stripeClass = meta.stripe ? 'stripe' : '';
-    const bgStyle = meta.stripe ? `--ball-color: ${meta.color};` : `background-color: ${meta.color};`;
+ * Render the HTML for a numbered pool ball.
+ *
+ * Valid ball numbers use the configured billiards colors
+ * and stripe style. Invalid values render as a neutral
+ * placeholder ball.
+ */
+function renderPoolBallHTML(
+    num,
+    sizeClass = 'w-10 h-10',
+    numSizeClass = 'w-5 h-5 text-xs'
+) {
+
+    const ballNumber =
+        Number(num);
+
+
+    const isValidBall =
+        Number.isInteger(ballNumber) &&
+        ballNumber >= 1 &&
+        ballNumber <= 15;
+
+
+    const displayNumber =
+        isValidBall
+            ? ballNumber
+            : '?';
+
+
+    const meta =
+        isValidBall
+            ? BALL_STYLES[ballNumber]
+            : {
+                color: '#64748b',
+                stripe: false
+            };
+
+
+    const stripeClass =
+        meta.stripe
+            ? 'stripe'
+            : '';
+
+
+    const bgStyle =
+        meta.stripe
+            ? `--ball-color: ${meta.color};`
+            : `background-color: ${meta.color};`;
+
+
     return `
-            <span class="pool-ball ${stripeClass} ${sizeClass}" style="${bgStyle}">
-                <span class="pool-ball-number ${numSizeClass}">${num}</span>
+        <span
+            class="pool-ball ${stripeClass} ${sizeClass}"
+            style="${bgStyle}"
+        >
+            <span class="pool-ball-number ${numSizeClass}">
+                ${displayNumber}
             </span>
-            `;
+        </span>
+    `;
 }

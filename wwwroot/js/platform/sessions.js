@@ -2,9 +2,18 @@
 // PLATFORM - ONLINE SESSIONS & REALTIME CONNECTIVITY
 // =========================================================
 
+
+// ---------------------------------------------------------
+// Realtime Session State
+// ---------------------------------------------------------
+
 let onlineLobbyChannel = null;
 let onlineGameChannel = null;
 
+
+// ---------------------------------------------------------
+// Join Codes
+// ---------------------------------------------------------
 
 /**
  * Generate a short human-readable session join code.
@@ -14,18 +23,35 @@ let onlineGameChannel = null;
  */
 function generateJoinCode(length = 6) {
 
+    const safeLength =
+        Number.isInteger(length) &&
+            length > 0
+            ? length
+            : 6;
+
+
     const characters =
         'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
+
     let code = '';
 
-    for (let i = 0; i < length; i++) {
-        code += characters[
+
+    for (
+        let i = 0;
+        i < safeLength;
+        i++
+    ) {
+
+        code +=
+            characters[
             Math.floor(
-                Math.random() * characters.length
+                Math.random() *
+                characters.length
             )
-        ];
+            ];
     }
+
 
     return code;
 }
@@ -74,6 +100,10 @@ async function copyJoinCode(code) {
     }
 }
 
+
+// ---------------------------------------------------------
+// Realtime Connection Lifecycle
+// ---------------------------------------------------------
 
 /**
  * Disconnect this device from all active realtime

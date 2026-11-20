@@ -2,7 +2,76 @@
 // RING GAME - STATE & LOCAL STORAGE
 // =========================================================
 
+// ---------------------------------------------------------
+// Constants
+// ---------------------------------------------------------
 const STORAGE_KEY = 'ringgame_pro_state_v1';
+
+
+// ---------------------------------------------------------
+// Default State Builders
+// ---------------------------------------------------------
+/**
+ * Create the default four-player Ring Game setup roster.
+ *
+ * When includeCurrentUser is true and authentication is
+ * available, the signed-in user becomes Player 1.
+ *
+ * When false, the roster remains authentication-neutral.
+ */
+function createDefaultRingGamePlayers(
+    includeCurrentUser = true
+) {
+
+    const useCurrentUser =
+        Boolean(
+            includeCurrentUser &&
+            currentUser &&
+            currentProfile
+        );
+
+
+    return [
+        {
+            id: 'p1',
+
+            name:
+                useCurrentUser
+                    ? currentProfile.display_name
+                    : 'Player 1',
+
+            userId:
+                useCurrentUser
+                    ? currentUser.id
+                    : null,
+
+            isGuest:
+                !useCurrentUser
+        },
+
+        {
+            id: 'p2',
+            name: 'Player 2',
+            userId: null,
+            isGuest: true
+        },
+
+        {
+            id: 'p3',
+            name: 'Player 3',
+            userId: null,
+            isGuest: true
+        },
+
+        {
+            id: 'p4',
+            name: 'Player 4',
+            userId: null,
+            isGuest: true
+        }
+    ];
+}
+
 
 /**
 * Default Application State
@@ -54,6 +123,9 @@ function getDefaultState() {
 }
 
 
+// ---------------------------------------------------------
+// Local Storage
+// ---------------------------------------------------------
 /**
  * Load Ring Game state from local storage.
  *
@@ -179,7 +251,41 @@ function saveState() {
 }
 
 
+// ---------------------------------------------------------
+// State Initialization
+// ---------------------------------------------------------
 let state = loadState();
+
+
+// ---------------------------------------------------------
+// Reset & Match Lifecycle
+// ---------------------------------------------------------
+/**
+ * Return Ring Game to a clean offline setup state.
+ *
+ * This only resets local Ring Game/session state.
+ * Cloud completion, cancellation, settlements, and
+ * realtime disconnection remain the responsibility
+ * of the caller.
+ */
+function resetRingGameToOfflineSetup() {
+
+    state.game = null;
+
+    state.view = 'setup';
+
+    state.config.isOnline = false;
+    state.config.onlineGameId = null;
+    state.config.joinCode = null;
+    state.config.onlineRole = null;
+
+    state.config.playerCount = 4;
+
+    state.config.players =
+        createDefaultRingGamePlayers();
+
+    activeTab = 'table';
+}
 
 
 function confirmResetModal() {
@@ -249,82 +355,4 @@ async function resetToSetup() {
         'Match completed.',
         'success'
     );
-}
-
-
-/**
- * Return Ring Game to a clean offline setup state.
- *
- * This only resets local Ring Game/session state.
- * Cloud completion, cancellation, settlements, and
- * realtime disconnection remain the responsibility
- * of the caller.
- */
-function resetRingGameToOfflineSetup() {
-
-    state.game = null;
-
-    state.view = 'setup';
-
-    state.config.isOnline = false;
-    state.config.onlineGameId = null;
-    state.config.joinCode = null;
-    state.config.onlineRole = null;
-
-    state.config.playerCount = 4;
-
-    state.config.players =
-        createDefaultRingGamePlayers();
-
-    activeTab = 'table';
-}
-
-
-/**
- * Create the default four-player Ring Game setup roster.
- *
- * includeCurrentUser should only be used after authentication
- * has been restored.
- */
-function createDefaultRingGamePlayers(
-    includeCurrentUser = true
-) {
-
-    const useCurrentUser =
-        includeCurrentUser &&
-        currentUser &&
-        currentProfile;
-
-    return [
-        {
-            id: 'p1',
-            name:
-                currentProfile?.display_name ||
-                'Player 1',
-
-            userId:
-                currentUser?.id || null,
-
-            isGuest:
-                !currentUser
-        },
-        {
-            id: 'p2',
-            name: 'Player 2',
-            userId: null,
-            isGuest: true
-        },
-        {
-            id: 'p3',
-            name: 'Player 3',
-            userId: null,
-            isGuest: true
-        },
-        {
-            id: 'p4',
-            name: 'Player 4',
-            userId: null,
-            isGuest: true
-        }
-    ];
 }

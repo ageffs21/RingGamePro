@@ -1,4 +1,8 @@
-﻿function openRulesModal() {
+﻿// =========================================================
+// RING GAME - RULES
+// =========================================================
+
+function openRulesModal() {
     openModal(`
             <div class="p-5 sm:p-6">
 
@@ -31,9 +35,8 @@
 
                 <p class="text-sm text-slate-300 leading-relaxed">
                     Ring Game is played in a fixed shooting rotation. Players earn
-                    money by legally pocketing designated money balls. The game
-                    continues until all designated money balls have been legally
-                    pocketed.
+                    money by legally pocketing designated money balls. Each rack 
+                    continues until all designated money balls have been legally pocketed.
                 </p>
                 </section>
 
@@ -231,8 +234,8 @@
                 </p>
 
                 <p class="text-sm text-white font-bold leading-relaxed mt-2">
-                    The game continues until every designated money ball has
-                    been legally made.
+                    Pocketing all designated money balls completes the current rack. 
+                    Continue playing racks until the players choose to settle up and end the Ring Game.
                 </p>
                 </section>
 

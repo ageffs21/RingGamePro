@@ -2,9 +2,11 @@
 // RING GAME - SETTLEMENT & BALANCE ENGINE
 // =========================================================
 
-/**
-* FINANCIAL & DEBT SIMPLIFICATION CALCULATIONS
-*/
+
+// ---------------------------------------------------------
+// Player Balance Calculations
+// ---------------------------------------------------------
+
 function getPlayerNetBalance(playerId) {
     if (!state.game) return 0;
     let net = 0;
@@ -17,6 +19,63 @@ function getPlayerNetBalance(playerId) {
     return +net.toFixed(2);
 }
 
+
+/**
+    * Returns a player's remaining unsettled balance.
+    *
+    * The pairwise ledger is preserved as the complete game history.
+    * Exit settlements are applied as adjustments so payments made
+    * when someone leaves are not included again at final settlement.
+    */
+function getAdjustedPlayerNetBalance(playerId) {
+    if (!state.game) return 0;
+
+    let net = getPlayerNetBalance(playerId);
+
+    const exitSettlements = Array.isArray(state.game.exitSettlements)
+        ? state.game.exitSettlements
+        : [];
+
+    exitSettlements.forEach(exitSettlement => {
+        const transactions = Array.isArray(exitSettlement.transactions)
+            ? exitSettlement.transactions
+            : [];
+
+        transactions.forEach(transaction => {
+
+            /*
+                * A payment reduces the payer's debt.
+                *
+                * Example:
+                * Raw balance = -$2.00
+                * Paid amount =  $2.00
+                * New balance =  $0.00
+                */
+            if (transaction.fromPlayerId === playerId) {
+                net += transaction.amount;
+            }
+
+            /*
+                * A received payment satisfies part of the recipient's credit.
+                *
+                * Example:
+                * Raw balance = +$2.00
+                * Received    =  $2.00
+                * New balance =  $0.00
+                */
+            if (transaction.toPlayerId === playerId) {
+                net -= transaction.amount;
+            }
+        });
+    });
+
+    return +net.toFixed(2);
+}
+
+
+// ---------------------------------------------------------
+// Pairwise Debt Calculations
+// ---------------------------------------------------------
 
 /**
     * Returns remaining direct debts between each pair of players.
@@ -109,58 +168,9 @@ function getPairwiseNetDebts() {
 }
 
 
-/**
-    * Returns a player's remaining unsettled balance.
-    *
-    * The pairwise ledger is preserved as the complete game history.
-    * Exit settlements are applied as adjustments so payments made
-    * when someone leaves are not included again at final settlement.
-    */
-function getAdjustedPlayerNetBalance(playerId) {
-    if (!state.game) return 0;
-
-    let net = getPlayerNetBalance(playerId);
-
-    const exitSettlements = Array.isArray(state.game.exitSettlements)
-        ? state.game.exitSettlements
-        : [];
-
-    exitSettlements.forEach(exitSettlement => {
-        const transactions = Array.isArray(exitSettlement.transactions)
-            ? exitSettlement.transactions
-            : [];
-
-        transactions.forEach(transaction => {
-
-            /*
-                * A payment reduces the payer's debt.
-                *
-                * Example:
-                * Raw balance = -$2.00
-                * Paid amount =  $2.00
-                * New balance =  $0.00
-                */
-            if (transaction.fromPlayerId === playerId) {
-                net += transaction.amount;
-            }
-
-            /*
-                * A received payment satisfies part of the recipient's credit.
-                *
-                * Example:
-                * Raw balance = +$2.00
-                * Received    =  $2.00
-                * New balance =  $0.00
-                */
-            if (transaction.toPlayerId === playerId) {
-                net -= transaction.amount;
-            }
-        });
-    });
-
-    return +net.toFixed(2);
-}
-
+// ---------------------------------------------------------
+// Settlement Simplification
+// ---------------------------------------------------------
 
 /**
 * Calculates the remaining settlement transactions between players.
@@ -239,6 +249,10 @@ function getSimplifiedSettlements() {
     return settlements;
 }
 
+
+// ---------------------------------------------------------
+// Player Exit Settlement
+// ---------------------------------------------------------
 
 /**
 * Calculates the payments involving one player at the moment
@@ -351,6 +365,11 @@ function getPlayerExitSettlement(playerId) {
     return transactions;
 }
 
+
+
+// ---------------------------------------------------------
+// Final Settlement UI
+// ---------------------------------------------------------
 
 function openEndGameModal() {
     if (!state.game) return;
@@ -1012,11 +1031,11 @@ function copySettlementSummary() {
     if (!state.game) return;
     const simplified = getSimplifiedSettlements();
     const lines = [
-        `🎱 RingGame Pro Settlement (${state.config.format.toUpperCase()} - ${state.game.rackNumber} Racks)`,
+        `🎱 RingGame Pro Settlement (${state.game.format.toUpperCase()} - ${state.game.rackNumber} Racks)`,
         '-----------------------------------'
     ];
     state.game.players.forEach(p => {
-        const net = getPlayerNetBalance(p.id);
+        const net = getAdjustedPlayerNetBalance(p.id);
         lines.push(`${p.name}: ${formatMoney(net, true)}`);
     });
     lines.push('');

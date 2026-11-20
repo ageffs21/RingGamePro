@@ -1,4 +1,13 @@
-﻿function openManagePlayersModal() {
+﻿// =========================================================
+// RING GAME - PLAYER LIFECYCLE
+// =========================================================
+
+
+// ---------------------------------------------------------
+// Live Player Management
+// ---------------------------------------------------------
+
+function openManagePlayersModal() {
     if (!state.game) return;
 
     const activePlayers = state.game.players.filter(
@@ -129,7 +138,7 @@
 
                     <div class="min-w-0">
                     <div class="font-bold text-white truncate">
-                        ${player.name}
+                        ${escapeHTML(player.name)}
                     </div>
 
                     <div class="text-xs ${net > 0.005
@@ -208,7 +217,7 @@
                         <div class="flex items-center justify-between gap-3">
 
                             <div class="font-bold text-slate-300">
-                            ${player.name}
+                            ${escapeHTML(player.name)}
                             </div>
 
                             <div class="text-[10px] uppercase font-bold text-slate-500">
@@ -280,18 +289,34 @@ function addPlayerToLiveGame() {
 
 
     const newPlayer = {
-        id: playerId,
-        name: name,
 
-        eliminated: false,
+        id:
+            playerId,
 
-        active: true,
+        name:
+            name,
 
-        joinedAtRack: state.game.rackNumber,
+        userId:
+            null,
 
-        leftAtRack: null,
+        isGuest:
+            true,
 
-        settledOnExit: false
+        eliminated:
+            false,
+
+        active:
+            true,
+
+        joinedAtRack:
+            state.game.rackNumber,
+
+        leftAtRack:
+            null,
+
+        settledOnExit:
+            false
+
     };
 
 
@@ -374,6 +399,10 @@ function addPlayerToLiveGame() {
 }
 
 
+// ---------------------------------------------------------
+// Player Departure & Settlement
+// ---------------------------------------------------------
+
 function openLeavePlayerModal(playerId) {
     if (!state.game) return;
 
@@ -413,7 +442,7 @@ function openLeavePlayerModal(playerId) {
                 </div>
 
                 <div class="text-lg font-extrabold text-white mt-1">
-                    ${player.name} is even.
+                    ${escapeHTML(player.name)} is even.
                 </div>
                 </div>
             `;
@@ -455,7 +484,7 @@ function openLeavePlayerModal(playerId) {
                     </div>
 
                     <h2 class="text-xl font-extrabold text-white">
-                    ${player.name}
+                    ${escapeHTML(player.name)}
                     </h2>
                 </div>
 
@@ -528,187 +557,6 @@ function openLeavePlayerModal(playerId) {
                 </div>
 
             </div>
-            `);
-}
-
-/**
-* Request permission from the host to leave an active
-* online game.
-*
-* The player remains active until the host settles
-* and confirms the departure.
-*/
-async function requestLeaveActiveGame() {
-
-    if (
-        !currentUser ||
-        !state.game ||
-        !state.game.isOnline ||
-        !state.game.cloudGameId ||
-        state.config.onlineRole !== 'player'
-    ) {
-        return;
-    }
-
-
-    const gameId =
-        state.game.cloudGameId;
-
-
-    const { error } =
-        await supabaseClient
-            .from('game_players')
-            .update({
-                leave_requested_at:
-                    new Date().toISOString()
-            })
-            .eq(
-                'game_id',
-                gameId
-            )
-            .eq(
-                'user_id',
-                currentUser.id
-            )
-            .eq(
-                'status',
-                'active'
-            );
-
-
-    if (error) {
-
-        console.error(
-            'Could not request to leave game:',
-            error
-        );
-
-        showToast(
-            'Could not send leave request.',
-            'danger'
-        );
-
-        return;
-    }
-
-
-    openPendingLeaveSettlement();
-}
-
-
-function openPendingLeaveSettlement() {
-
-    if (!state.game || !currentUser) {
-        return;
-    }
-
-
-    const player =
-        state.game.players.find(
-            item =>
-                item.userId === currentUser.id
-        );
-
-
-    if (!player) {
-        return;
-    }
-
-
-    const transactions =
-        getPlayerExitSettlement(
-            player.id
-        );
-
-
-    openModal(`
-                <div class="p-5 sm:p-6">
-
-                    <div class="text-[11px] font-bold uppercase tracking-wider text-amber-400 mb-1">
-                        Leave Request Sent
-                    </div>
-
-                    <h2 class="text-xl font-extrabold text-white">
-                        Settle Up
-                    </h2>
-
-                    <p class="text-sm text-slate-400 mt-2">
-                        This is your current settlement.
-                        Complete these payments while waiting for the host to approve your departure.
-                    </p>
-
-
-                    ${transactions.length === 0
-            ? `
-                                <div class="mt-4 rounded-xl bg-slatefelt-850 border border-slatefelt-700 p-4">
-
-                                    <div class="text-sm font-bold text-emerald-300">
-                                        You are square.
-                                    </div>
-
-                                    <div class="text-xs text-slate-400 mt-1">
-                                        No payment is currently required.
-                                    </div>
-
-                                </div>
-                              `
-            : `
-                                <div class="space-y-2 mt-4">
-
-                                    ${transactions.map(transaction => `
-                                        <div class="flex items-center justify-between gap-3 rounded-xl bg-amber-950/20 border border-amber-500/30 px-3.5 py-3">
-
-                                            <span class="text-sm text-slate-200">
-
-                                                ${escapeHTML(transaction.fromPlayerName)}
-
-                                                <span class="text-slate-500 mx-1">
-                                                    pays
-                                                </span>
-
-                                                ${escapeHTML(transaction.toPlayerName)}
-
-                                            </span>
-
-                                            <span class="font-mono font-bold text-amber-300">
-                                                ${formatMoney(transaction.amount)}
-                                            </span>
-
-                                        </div>
-                                    `).join('')}
-
-                                </div>
-                              `
-        }
-
-
-                    <div class="mt-5 px-3 py-3 rounded-xl bg-blue-950/20 border border-blue-500/30">
-
-                        <div class="flex items-center gap-2">
-
-                            <span class="w-2 h-2 rounded-full bg-blue-400"></span>
-
-                            <span class="text-xs font-bold text-blue-300">
-                                Waiting for host approval
-                            </span>
-
-                        </div>
-
-                        <p class="text-[11px] text-slate-400 mt-1">
-                            You will remain in the live game until the host confirms that settlement is complete.
-                        </p>
-
-                    </div>
-
-
-                    <button
-                        onclick="closeModal()"
-                        class="w-full mt-4 py-2.5 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-700 text-slate-300 font-bold text-sm"
-                    >
-                        Return to Game
-                    </button>
-
-                </div>
             `);
 }
 
@@ -910,6 +758,192 @@ async function confirmPlayerLeave(playerId) {
 }
 
 
+// ---------------------------------------------------------
+// Online Leave Requests
+// ---------------------------------------------------------
+
+/**
+* Request permission from the host to leave an active
+* online game.
+*
+* The player remains active until the host settles
+* and confirms the departure.
+*/
+async function requestLeaveActiveGame() {
+
+    if (
+        !currentUser ||
+        !state.game ||
+        !state.game.isOnline ||
+        !state.game.cloudGameId ||
+        state.config.onlineRole !== 'player'
+    ) {
+        return;
+    }
+
+
+    const gameId =
+        state.game.cloudGameId;
+
+
+    const { error } =
+        await supabaseClient
+            .from('game_players')
+            .update({
+                leave_requested_at:
+                    new Date().toISOString()
+            })
+            .eq(
+                'game_id',
+                gameId
+            )
+            .eq(
+                'user_id',
+                currentUser.id
+            )
+            .eq(
+                'status',
+                'active'
+            );
+
+
+    if (error) {
+
+        console.error(
+            'Could not request to leave game:',
+            error
+        );
+
+        showToast(
+            'Could not send leave request.',
+            'danger'
+        );
+
+        return;
+    }
+
+
+    openPendingLeaveSettlement();
+}
+
+
+function openPendingLeaveSettlement() {
+
+    if (!state.game || !currentUser) {
+        return;
+    }
+
+
+    const player =
+        state.game.players.find(
+            item =>
+                item.userId === currentUser.id
+        );
+
+
+    if (!player) {
+        return;
+    }
+
+
+    const transactions =
+        getPlayerExitSettlement(
+            player.id
+        );
+
+
+    openModal(`
+                <div class="p-5 sm:p-6">
+
+                    <div class="text-[11px] font-bold uppercase tracking-wider text-amber-400 mb-1">
+                        Leave Request Sent
+                    </div>
+
+                    <h2 class="text-xl font-extrabold text-white">
+                        Settle Up
+                    </h2>
+
+                    <p class="text-sm text-slate-400 mt-2">
+                        This is your current settlement.
+                        Complete these payments while waiting for the host to approve your departure.
+                    </p>
+
+
+                    ${transactions.length === 0
+            ? `
+                                <div class="mt-4 rounded-xl bg-slatefelt-850 border border-slatefelt-700 p-4">
+
+                                    <div class="text-sm font-bold text-emerald-300">
+                                        You are square.
+                                    </div>
+
+                                    <div class="text-xs text-slate-400 mt-1">
+                                        No payment is currently required.
+                                    </div>
+
+                                </div>
+                              `
+            : `
+                                <div class="space-y-2 mt-4">
+
+                                    ${transactions.map(transaction => `
+                                        <div class="flex items-center justify-between gap-3 rounded-xl bg-amber-950/20 border border-amber-500/30 px-3.5 py-3">
+
+                                            <span class="text-sm text-slate-200">
+
+                                                ${escapeHTML(transaction.fromPlayerName)}
+
+                                                <span class="text-slate-500 mx-1">
+                                                    pays
+                                                </span>
+
+                                                ${escapeHTML(transaction.toPlayerName)}
+
+                                            </span>
+
+                                            <span class="font-mono font-bold text-amber-300">
+                                                ${formatMoney(transaction.amount)}
+                                            </span>
+
+                                        </div>
+                                    `).join('')}
+
+                                </div>
+                              `
+        }
+
+
+                    <div class="mt-5 px-3 py-3 rounded-xl bg-blue-950/20 border border-blue-500/30">
+
+                        <div class="flex items-center gap-2">
+
+                            <span class="w-2 h-2 rounded-full bg-blue-400"></span>
+
+                            <span class="text-xs font-bold text-blue-300">
+                                Waiting for host approval
+                            </span>
+
+                        </div>
+
+                        <p class="text-[11px] text-slate-400 mt-1">
+                            You will remain in the live game until the host confirms that settlement is complete.
+                        </p>
+
+                    </div>
+
+
+                    <button
+                        onclick="closeModal()"
+                        class="w-full mt-4 py-2.5 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-700 text-slate-300 font-bold text-sm"
+                    >
+                        Return to Game
+                    </button>
+
+                </div>
+            `);
+}
+
+
 /**
 * Show the departing player the settlement approved by
 * the host, then return the device to normal setup.
@@ -982,74 +1016,16 @@ async function handleOnlinePlayerDeparture(
                     currentParticipant.id
             );
 
-
     /*
      * Stop listening to the completed participation.
      */
     await disconnectSessionChannels();
 
-
     /*
-     * Clear this device's online match state.
-     */
-    state.game = null;
-
-    state.view =
-        'setup';
-
-    activeTab =
-        'table';
-
-    state.config.isOnline =
-        false;
-
-    state.config.onlineGameId =
-        null;
-
-    state.config.joinCode =
-        null;
-
-    state.config.onlineRole =
-        null;
-
-
-    /*
-     * Restore ordinary offline setup.
-     */
-    state.config.playerCount =
-        4;
-
-    state.config.players = [
-        {
-            id: 'p1',
-            name:
-                currentProfile?.display_name ||
-                'Player 1',
-            userId:
-                currentUser?.id || null,
-            isGuest:
-                !currentUser
-        },
-        {
-            id: 'p2',
-            name: 'Player 2',
-            userId: null,
-            isGuest: true
-        },
-        {
-            id: 'p3',
-            name: 'Player 3',
-            userId: null,
-            isGuest: true
-        },
-        {
-            id: 'p4',
-            name: 'Player 4',
-            userId: null,
-            isGuest: true
-        }
-    ];
-
+    * Return this device to a clean offline
+    * Ring Game setup.
+    */
+    resetRingGameToOfflineSetup();
 
     saveState();
 
@@ -1135,6 +1111,10 @@ async function handleOnlinePlayerDeparture(
             `);
 }
 
+
+// ---------------------------------------------------------
+// Online Lobby Guests
+// ---------------------------------------------------------
 
 function openSetupGuestModal() {
 

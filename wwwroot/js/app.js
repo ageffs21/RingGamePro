@@ -1,13 +1,36 @@
-﻿const APP_VERSION = '0.5.5';
+﻿// =========================================================
+// POOL PLATFORM - APPLICATION CONTROLLER
+// =========================================================
 
 
-/**
-* MAIN RENDER CONTROLLER
-*/
+// ---------------------------------------------------------
+// Application Configuration
+// ---------------------------------------------------------
+
+const APP_VERSION = '0.5.5';
+
+
+// ---------------------------------------------------------
+// Main Render Controller
+// ---------------------------------------------------------
+
 function render() {
     const root = document.getElementById('app-root');
     const headerActions = document.getElementById('header-actions');
     const subtitle = document.getElementById('header-subtitle');
+
+    if (
+        !root ||
+        !headerActions ||
+        !subtitle
+    ) {
+
+        console.error(
+            'Application shell is missing required UI elements.'
+        );
+
+        return;
+    }
 
     // Rules button is available from every screen.
     const rulesButton = `
@@ -133,11 +156,10 @@ function render() {
     }
 }
 
-/*
- * ---------------------------------------------------------
- * INITIAL APPLICATION STARTUP
- * ---------------------------------------------------------
- */
+
+// ---------------------------------------------------------
+// Initial Application Startup
+// ---------------------------------------------------------
 
 /*
  * Show the interface immediately.
@@ -151,8 +173,12 @@ render();
  * loadCurrentUser() already loads the user's profile,
  * so we do not create/check the profile a second time here.
  */
-loadCurrentUser();
+void loadCurrentUser();
 
+
+// ---------------------------------------------------------
+// Authentication Lifecycle
+// ---------------------------------------------------------
 
 /*
  * React only to actual authentication changes.
@@ -210,6 +236,10 @@ supabaseClient.auth.onAuthStateChange(
     }
 );
 
+
+// ---------------------------------------------------------
+// Application Resume
+// ---------------------------------------------------------
 
 document.addEventListener(
     'visibilitychange',

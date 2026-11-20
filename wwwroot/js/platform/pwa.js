@@ -1,11 +1,17 @@
-﻿/**
-* PWA BOOTSTRAP: Inline App Icon (SVG + Canvas PNG), Dynamic Manifest, & Offline Service Worker
-*/
+﻿// =========================================================
+// PLATFORM - PWA & OFFLINE SUPPORT
+// =========================================================
+
+/**
+ * Configure service-worker behavior for development
+ * and published versions of the application.
+ */
 (function initOfflinePWA() {
     // Disable service worker caching while developing locally.
     const isDevelopment =
         location.hostname === 'localhost' ||
         location.hostname === '127.0.0.1';
+
     if (isDevelopment) {
         // Remove any previously registered service workers.
         if ('serviceWorker' in navigator) {
@@ -23,29 +29,26 @@
         });
         return;
     }
+
     // Published version
     if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker
-                .register('./service-worker.js')
-                .then(() => {
 
-                    setTimeout(() => {
-                        showToast('Offline Ready', 'success');
-                    }, 500);
-                })
-                .catch(error => {
-                    console.error(
-                        'Service worker registration failed:',
-                        error
-                    );
-                    setTimeout(() => {
-                        showToast(
-                            'Offline mode unavailable',
-                            'warning'
-                        );
-                    }, 500);
-                });
-        });
+        navigator.serviceWorker
+            .getRegistrations()
+            .then(registrations => {
+
+                registrations.forEach(
+                    registration => {
+                        registration.unregister();
+                    }
+                );
+            })
+            .catch(error => {
+
+                console.warn(
+                    'Could not clear development service workers:',
+                    error
+                );
+            });
     }
 })();

@@ -1,5 +1,17 @@
-﻿let dragSourceIndex = null;
+﻿// =========================================================
+// RING GAME - SETUP & MATCH CREATION
+// =========================================================
 
+// ---------------------------------------------------------
+// Setup UI State
+// ---------------------------------------------------------
+
+let dragSourceIndex = null;
+
+
+// ---------------------------------------------------------
+// Initial Game State Builder
+// ---------------------------------------------------------
 
 /**
  * Build the initial live Ring Game state from the
@@ -130,6 +142,10 @@ function createInitialRingGameState(config) {
 }
 
 
+// ---------------------------------------------------------
+// Player Configuration
+// ---------------------------------------------------------
+
 /**
 * SETUP ACTIONS
 */
@@ -138,7 +154,19 @@ function setPlayerCount(count) {
     const current = [...state.config.players];
     if (newCount > current.length) {
         for (let i = current.length; i < newCount; i++) {
-            current.push({ id: 'p' + (Date.now() + i), name: `Player ${i + 1}` });
+            current.push({
+                id:
+                    'p' + (Date.now() + i),
+
+                name:
+                    `Player ${i + 1}`,
+
+                userId:
+                    null,
+
+                isGuest:
+                    true
+            });
         }
     } else if (newCount < current.length) {
         current.length = newCount;
@@ -179,6 +207,38 @@ function randomizePlayerOrder() {
 }
 
 
+// ---------------------------------------------------------
+// Player Drag & Drop
+// ---------------------------------------------------------
+
+function handleDragStart(e, index) {
+    dragSourceIndex = index;
+    e.dataTransfer.effectAllowed = 'move';
+}
+
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+}
+
+
+function handleDrop(e, targetIndex) {
+    e.preventDefault();
+    if (dragSourceIndex === null || dragSourceIndex === targetIndex) return;
+    const list = state.config.players;
+    const [moved] = list.splice(dragSourceIndex, 1);
+    list.splice(targetIndex, 0, moved);
+    dragSourceIndex = null;
+    saveState();
+    render();
+}
+
+
+// ---------------------------------------------------------
+// Game Format
+// ---------------------------------------------------------
+
 function setGameFormat(fmt) {
     state.config.format = fmt;
     if (fmt === '9-ball') {
@@ -196,6 +256,9 @@ function setGameFormat(fmt) {
     render();
 }
 
+// ---------------------------------------------------------
+// Money Ball Configuration
+// ---------------------------------------------------------
 
 function updateMoneyBallValue(index, val) {
     const parsed = Math.max(0.25, parseFloat(val) || 0);
@@ -249,6 +312,10 @@ function addCustomMoneyBall(ballNum) {
 }
 
 
+// ---------------------------------------------------------
+// Buy-In Configuration
+// ---------------------------------------------------------
+
 function toggleBuyIn(enabled) {
     state.config.useBuyIn = enabled;
     saveState();
@@ -262,29 +329,9 @@ function updateBuyInAmount(val) {
 }
 
 
-function handleDragStart(e, index) {
-    dragSourceIndex = index;
-    e.dataTransfer.effectAllowed = 'move';
-}
-
-
-function handleDragOver(e) {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-}
-
-
-function handleDrop(e, targetIndex) {
-    e.preventDefault();
-    if (dragSourceIndex === null || dragSourceIndex === targetIndex) return;
-    const list = state.config.players;
-    const [moved] = list.splice(dragSourceIndex, 1);
-    list.splice(targetIndex, 0, moved);
-    dragSourceIndex = null;
-    saveState();
-    render();
-}
-
+// ---------------------------------------------------------
+// Match Start
+// ---------------------------------------------------------
 
 /**
 * START GAME
@@ -305,6 +352,7 @@ async function startMatch() {
 
             return;
         }
+
         /*
         * Online lobbies must contain at least two actual players.
         */
@@ -320,10 +368,9 @@ async function startMatch() {
             return;
         }
 
-
         /*
-            * Ring Game supports a maximum of 12 active players.
-            */
+        * Ring Game supports a maximum of 12 active players.
+        */
         if (
             state.config.isOnline &&
             state.config.players.length > 12
@@ -341,6 +388,20 @@ async function startMatch() {
             return;
         }
 
+        /*
+        * A Ring Game requires at least one money ball.
+        */
+        if (
+            !Array.isArray(state.config.moneyBalls) ||
+            state.config.moneyBalls.length === 0
+        ) {
+            showToast(
+                'Add at least one money ball before starting.',
+                'warning'
+            );
+
+            return;
+        }
 
         // Build the initial Ring Game.
         state.game =

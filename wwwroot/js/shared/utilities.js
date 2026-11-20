@@ -1,14 +1,46 @@
-﻿/**
-* Helper: Currency Formatting
-*/
-function formatMoney(amount, showPlus = false) {
-    const num = Number(amount) || 0;
-    const absStr = Math.abs(num).toFixed(2);
-    if (num < 0) return `-$${absStr}`;
-    if (num > 0 && showPlus) return `+$${absStr}`;
+﻿// =========================================================
+// SHARED - UTILITIES
+// =========================================================
+
+
+// ---------------------------------------------------------
+// Currency Formatting
+// ---------------------------------------------------------
+
+function formatMoney(
+    amount,
+    showPlus = false
+) {
+
+    const parsed =
+        Number(amount);
+
+    const num =
+        Number.isFinite(parsed)
+            ? parsed
+            : 0;
+
+    const absStr =
+        Math.abs(num).toFixed(2);
+
+    if (num < 0) {
+        return `-$${absStr}`;
+    }
+
+    if (
+        num > 0 &&
+        showPlus
+    ) {
+        return `+$${absStr}`;
+    }
+
     return `$${absStr}`;
 }
 
+
+// ---------------------------------------------------------
+// HTML Escaping
+// ---------------------------------------------------------
 
 /**
 * XSS Escaping Helper
@@ -22,6 +54,10 @@ function escapeHTML(str) {
         .replace(/'/g, '&#039;');
 }
 
+
+// ---------------------------------------------------------
+// JavaScript String Escaping
+// ---------------------------------------------------------
 
 /**
  * Escape a value before inserting it inside a single-quoted

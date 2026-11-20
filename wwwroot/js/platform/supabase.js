@@ -1,4 +1,8 @@
-﻿const SUPABASE_URL =
+﻿// =========================================================
+// PLATFORM - SUPABASE CLIENT
+// =========================================================
+
+const SUPABASE_URL =
     'https://ybtxfjdulygyhluhnhss.supabase.co';
 
 const SUPABASE_PUBLISHABLE_KEY =
