@@ -94,34 +94,27 @@ function renderSetupView() {
 
                             <div class="flex flex-col sm:flex-row gap-2">
 
-                              <button
-                                onclick="copyJoinCode(state.config?.joinCode)"
-                                class="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold transition"
-                              >
-                                Copy Code
-                              </button>
+                              <div class="grid grid-cols-2 gap-2 mt-3">
 
-                              <button
-                                onclick="refreshLobbyPlayers()"
-                                class="px-4 py-2.5 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-600 text-white text-sm font-bold transition"
-                              >
-                                Refresh Players
-                              </button>
+                                    <button
+                                        type="button"
+                                        onclick="copyJoinCode('${escapeJavaScriptString(cfg.joinCode)}')"
+                                        class="py-2.5 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-700 text-slate-200 font-bold text-xs"
+                                    >
+                                        Copy Code
+                                    </button>
 
-                            </div>
-
-                              <div class="mt-4 flex justify-center">
-
-                                    <div
-                                        id="setup-join-qr"
-                                        class="bg-white p-2 rounded-xl"
-                                    ></div>
+                                    <button
+                                        type="button"
+                                        onclick="openJoinQrModal('${escapeJavaScriptString(cfg.joinCode)}')"
+                                        class="py-2.5 rounded-xl bg-blue-500 hover:bg-blue-400 text-white font-bold text-xs"
+                                    >
+                                        Show QR
+                                    </button>
 
                                 </div>
 
-                                <div class="text-center text-[11px] text-slate-500 mt-2">
-                                    Scan to join
-                                </div>   
+                            </div>
 
                         </div>
 
@@ -230,6 +223,14 @@ function renderSetupView() {
                               </button>
 
                             </div>
+
+                            <button
+                                type="button"
+                                onclick="openQrScanner()"
+                                class="w-full mt-3 py-2.5 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-700 text-slate-200 font-bold text-sm transition"
+                            >
+                                Scan QR Code
+                            </button>
 
                           </div>
 

@@ -721,3 +721,89 @@ function clearJoinCodeFromUrl() {
         url.toString()
     );
 }
+
+/**
+ * Display a scannable QR code for an online session.
+ */
+function openJoinQrModal(
+    joinCode
+) {
+
+    const code =
+        String(joinCode || '')
+            .trim()
+            .toUpperCase();
+
+
+    if (!code) {
+
+        showToast(
+            'No join code is available.',
+            'warning'
+        );
+
+        return;
+    }
+
+
+    openModal(`
+        <div class="p-5 sm:p-6 text-center">
+
+            <div class="text-xs font-bold uppercase tracking-wider text-blue-400">
+                Join Online
+            </div>
+
+            <h2 class="text-xl font-extrabold text-white mt-1">
+                Scan to Join
+            </h2>
+
+            <p class="text-sm text-slate-400 mt-2">
+                Scan this QR code with another phone.
+            </p>
+
+
+            <div class="flex justify-center mt-5">
+
+                <div
+                    id="join-qr-code"
+                    class="bg-white p-3 rounded-xl"
+                ></div>
+
+            </div>
+
+
+            <div class="text-xs font-bold uppercase tracking-wider text-slate-500 mt-4">
+                Join Code
+            </div>
+
+            <div class="font-mono text-2xl font-extrabold tracking-[0.2em] text-white mt-1">
+                ${escapeHTML(code)}
+            </div>
+
+
+            <button
+                type="button"
+                onclick="copyJoinCode('${escapeJavaScriptString(code)}')"
+                class="w-full mt-5 py-3 rounded-xl bg-slatefelt-800 hover:bg-slatefelt-700 border border-slatefelt-700 text-slate-200 font-bold text-sm"
+            >
+                Copy Join Code
+            </button>
+
+
+            <button
+                type="button"
+                onclick="closeModal()"
+                class="w-full mt-2 py-3 rounded-xl bg-blue-500 hover:bg-blue-400 text-white font-extrabold text-sm"
+            >
+                Done
+            </button>
+
+        </div>
+    `);
+
+
+    renderJoinQrCode(
+        'join-qr-code',
+        code
+    );
+}

@@ -243,22 +243,6 @@ function render() {
     root.innerHTML =
         renderSetupView();
 
-    /*
-     * Render the setup-lobby QR code after the setup view
-     * has been inserted into the DOM.
-     */
-    if (
-        state.config.isOnline &&
-        state.config.joinCode &&
-        state.config.onlineRole === 'host'
-    ) {
-
-        renderJoinQrCode(
-            'setup-join-qr',
-            state.config.joinCode
-        );
-    }
-
 
     const startBtn =
         document.getElementById(
