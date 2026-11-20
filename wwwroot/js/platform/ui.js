@@ -354,13 +354,15 @@ function renderProfileView() {
                         Sign In
                     </button>
 
-                    <button
-                        type="button"
-                        onclick="returnFromProfile()"
-                        class="text-sm font-bold text-slate-400 hover:text-white transition"
-                    >
-                        ← Back
-                    </button>
+                    <div class="flex justify-end">
+                        <button
+                            type="button"
+                            onclick="returnFromProfile()"
+                            class="text-sm font-bold text-slate-400 hover:text-white transition"
+                        >
+                            ← Back
+                        </button>
+                    </div>
 
                 </div>
 
@@ -378,13 +380,15 @@ function renderProfileView() {
         <div class="max-w-lg mx-auto space-y-4">
 
             <div>
-                <button
-                    type="button"
-                    onclick="returnFromProfile()"
-                    class="text-sm font-bold text-slate-400 hover:text-white transition"
-                >
-                    ← Back
-                </button>
+                <div class="flex justify-end">
+                    <button
+                        type="button"
+                        onclick="returnFromProfile()"
+                        class="text-sm font-bold text-slate-400 hover:text-white transition"
+                    >
+                        ← Back
+                    </button>
+                </div>
 
                 <div class="text-xs font-bold uppercase tracking-wider text-blue-400 mt-4">
                     Profile

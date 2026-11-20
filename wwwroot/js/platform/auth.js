@@ -47,6 +47,12 @@ async function loadCurrentUser() {
     }
 
     render();
+
+    if (pendingJoinCode) {
+
+        await processPendingJoinCode();
+
+    }
 }
 
 

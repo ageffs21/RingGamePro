@@ -110,6 +110,19 @@ function renderSetupView() {
 
                             </div>
 
+                              <div class="mt-4 flex justify-center">
+
+                                    <div
+                                        id="setup-join-qr"
+                                        class="bg-white p-2 rounded-xl"
+                                    ></div>
+
+                                </div>
+
+                                <div class="text-center text-[11px] text-slate-500 mt-2">
+                                    Scan to join
+                                </div>   
+
                         </div>
 
                         <p class="text-xs text-slate-400 mt-3">
